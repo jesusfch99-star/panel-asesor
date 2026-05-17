@@ -8,6 +8,17 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Panel Asesor — Más por Menos</title>
 <link rel="manifest" href="#" />
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "2b539569-f5bc-487f-8418-26583c484a27",
+      notifyButton: { enable: false },
+      allowLocalhostAsSecureOrigin: true,
+    });
+  });
+</script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
@@ -367,6 +378,12 @@ body {
     <div class="status-dot"></div>
     En línea
   </div>
+  <button id="btnNotif" onclick="activarNotificaciones()"
+    style="background:none;border:1px solid var(--border);color:var(--amarillo);
+    border-radius:20px;padding:6px 12px;font-size:11px;font-weight:700;
+    cursor:pointer;font-family:inherit;margin-left:8px;white-space:nowrap;">
+    🔕 Activar notif.
+  </button>
 </div>
 
 <!-- TABS -->
@@ -730,6 +747,47 @@ function showToast(msg) {
 }
 
 window.addEventListener("resize", () => { isMobile = window.innerWidth <= 600; });
+
+// ════════════════════════════════════════
+//  ONESIGNAL — Notificaciones push
+// ════════════════════════════════════════
+async function activarNotificaciones() {
+  try {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      const permission = await OneSignal.Notifications.permission;
+      if (!permission) {
+        await OneSignal.Notifications.requestPermission();
+      }
+      const isSubscribed = await OneSignal.User.PushSubscription.optedIn;
+      if (isSubscribed) {
+        showToast("🔔 Notificaciones activadas");
+        document.getElementById("btnNotif").textContent = "🔔 Notificaciones ON";
+        document.getElementById("btnNotif").style.color = "var(--verde)";
+      } else {
+        showToast("⚠️ Activa los permisos en tu navegador");
+      }
+    });
+  } catch(e) {
+    showToast("⚠️ Error al activar notificaciones");
+  }
+}
+
+// Verificar estado al iniciar
+window.addEventListener("load", () => {
+  setTimeout(() => {
+    if (window.OneSignalDeferred) {
+      OneSignalDeferred.push(async function(OneSignal) {
+        const isSubscribed = await OneSignal.User.PushSubscription.optedIn;
+        const btn = document.getElementById("btnNotif");
+        if (btn) {
+          btn.textContent = isSubscribed ? "🔔 Notif. ON" : "🔕 Activar notif.";
+          btn.style.color = isSubscribed ? "var(--verde)" : "var(--amarillo)";
+        }
+      });
+    }
+  }, 2000);
+});
 
 // ════════════════════════════════════════
 //  INICIO
