@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contabilidad — Panel Asesor</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,300&display=swap');
+
+  :root {
+    --bg:        #0f0f0f;
+    --surface:   #181818;
+    --surface2:  #222222;
+    --border:    #2e2e2e;
+    --accent:    #d4ff4e;
+    --accent-d:  #a8cc30;
+    --text:      #e8e8e8;
+    --text-dim:  #888;
+    --red:       #ff5a5a;
+    --green:     #4edb9a;
+    --blue:      #5ab4ff;
+    --orange:    #ffb347;
+    --r: 6px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 13px;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  header h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+  header span.badge {
+    background: var(--accent);
+    color: #000;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .header-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    gap: 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    overflow-x: auto;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    padding: 12px 18px;
+    cursor: pointer;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all .2s;
+    letter-spacing: 0.3px;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .tab-btn .dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    margin-right: 7px;
+  }
+
+  /* ── Layout ── */
+  .main { padding: 20px; max-width: 1100px; margin: 0 auto; }
+
+  /* ── Cards resumen ── */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .summary-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .summary-card.ingreso::before { background: var(--green); }
+  .summary-card.egreso::before  { background: var(--red); }
+  .summary-card.diario::before  { background: var(--blue); }
+  .summary-card.saldo::before   { background: var(--accent); }
+
+  .summary-card .label {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .summary-card .amount {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -1px;
+  }
+  .summary-card.ingreso .amount { color: var(--green); }
+  .summary-card.egreso .amount  { color: var(--red); }
+  .summary-card.diario .amount  { color: var(--blue); }
+  .summary-card.saldo .amount   { color: var(--accent); }
+  .summary-card .sub {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  /* ── Barra de acciones ── */
+  .action-bar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: var(--r);
+    cursor: pointer;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+  .btn.primary:hover { background: var(--accent-d); }
+  .btn.danger { border-color: var(--red); color: var(--red); }
+  .btn.danger:hover { background: rgba(255,90,90,.1); }
+
+  input[type=text], input[type=number], input[type=date],
+  select, textarea {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: var(--r);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    outline: none;
+    transition: border-color .2s;
+    width: 100%;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+  }
+  select option { background: var(--surface2); }
+
+  .filter-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+  .filter-group input, .filter-group select {
+    width: auto;
+  }
+
+  /* ── Tabla ── */
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    overflow: hidden;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  thead th {
+    background: var(--surface2);
+    color: var(--text-dim);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background .15s;
+    cursor: pointer;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+  td {
+    padding: 11px 14px;
+    vertical-align: middle;
+  }
+
+  .tipo-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .tipo-INGRESO { background: rgba(78,219,154,.15); color: var(--green); }
+  .tipo-EGRESO  { background: rgba(255,90,90,.15);  color: var(--red); }
+  .tipo-DIARIO  { background: rgba(90,180,255,.15); color: var(--blue); }
+
+  .monto-ingreso { color: var(--green); font-weight: 600; }
+  .monto-egreso  { color: var(--red);   font-weight: 600; }
+  .monto-diario  { color: var(--blue);  font-weight: 600; }
+
+  .num-poliza {
+    font-weight: 600;
+    color: var(--accent);
+    font-size: 12px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-dim);
+  }
+  .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-state p { font-size: 13px; }
+
+  /* ── Modal ── */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.75);
+    z-index: 200;
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    overflow-y: auto;
+    padding: 20px;
+  }
+  .overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    width: 100%;
+    max-width: 720px;
+    margin: auto;
+    animation: slideIn .2s ease;
+  }
+  @keyframes slideIn {
+    from { transform: translateY(-16px); opacity: 0; }
+    to   { transform: translateY(0);     opacity: 1; }
+  }
+  .modal-header {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .modal-header h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .modal-body { padding: 22px; }
+  .modal-footer {
+    padding: 16px 22px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .form-group label {
+    display: block;
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 6px;
+  }
+
+  /* ── Partidas (debe/haber) ── */
+  .partidas-section {
+    margin-top: 20px;
+  }
+  .partidas-section h3 {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .partida-row {
+    display: grid;
+    grid-template-columns: 2fr 3fr 1fr 1fr auto;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  @media (max-width: 600px) {
+    .partida-row { grid-template-columns: 1fr 1fr; }
+    .partida-row .btn { grid-column: span 2; }
+  }
+  .partida-btn-remove {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--red);
+    width: 30px; height: 30px;
+    border-radius: var(--r);
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .2s;
+    flex-shrink: 0;
+  }
+  .partida-btn-remove:hover { background: rgba(255,90,90,.1); }
+
+  .balance-row {
+    display: grid;
+    grid-template-columns: 2fr 3fr 1fr 1fr auto;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .balance-label {
+    grid-column: 3;
+    font-size: 10px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    letter-spacing: 0.8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .balance-amounts {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .balance-ok   { color: var(--green); }
+  .balance-fail { color: var(--red); }
+
+  /* ── Detalle póliza ── */
+  .detalle-header {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .detalle-field {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .detalle-field .lbl {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  .detalle-field .val {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .partidas-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+  }
+  .partidas-table th {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 8px 12px;
+    text-align: left;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+  .partidas-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .partidas-table tr:last-child td { border-bottom: none; }
+  .partidas-table .total-row td {
+    font-weight: 700;
+    background: var(--surface2);
+    border-top: 1px solid var(--border);
+    border-bottom: none;
+  }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 12px 18px;
+    border-radius: var(--r);
+    font-size: 12px;
+    z-index: 999;
+    animation: fadeIn .3s;
+    display: none;
+  }
+  .toast.show { display: block; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>📒 Contabilidad</h1>
+  </div>
+  <span class="badge">Panel Asesor</span>
+  <div class="header-right">
+    <span id="header-periodo" style="color:var(--text-dim);font-size:11px;"></span>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="setTab('todas')">
+    <span class="dot" style="background:var(--text-dim)"></span>Todas
+  </button>
+  <button class="tab-btn" onclick="setTab('INGRESO')">
+    <span class="dot" style="background:var(--green)"></span>Ingresos
+  </button>
+  <button class="tab-btn" onclick="setTab('EGRESO')">
+    <span class="dot" style="background:var(--red)"></span>Egresos
+  </button>
+  <button class="tab-btn" onclick="setTab('DIARIO')">
+    <span class="dot" style="background:var(--blue)"></span>Diario
+  </button>
+  <button class="tab-btn" onclick="setTab('reportes')">
+    <span class="dot" style="background:var(--orange)"></span>Reportes
+  </button>
+</div>
+
+<div class="main">
+
+  <!-- Cards resumen -->
+  <div class="summary-grid" id="summary-grid">
+    <div class="summary-card ingreso">
+      <div class="label">Total Ingresos</div>
+      <div class="amount" id="sum-ingresos">$0.00</div>
+      <div class="sub" id="cnt-ingresos">0 pólizas</div>
+    </div>
+    <div class="summary-card egreso">
+      <div class="label">Total Egresos</div>
+      <div class="amount" id="sum-egresos">$0.00</div>
+      <div class="sub" id="cnt-egresos">0 pólizas</div>
+    </div>
+    <div class="summary-card diario">
+      <div class="label">Pólizas Diario</div>
+      <div class="amount" id="sum-diario">0</div>
+      <div class="sub" id="cnt-diario">entradas</div>
+    </div>
+    <div class="summary-card saldo">
+      <div class="label">Saldo Neto</div>
+      <div class="amount" id="sum-saldo">$0.00</div>
+      <div class="sub">ingresos - egresos</div>
+    </div>
+  </div>
+
+  <!-- Vista lista -->
+  <div id="view-lista">
+    <div class="action-bar">
+      <button class="btn primary" onclick="abrirModalNueva()">＋ Nueva Póliza</button>
+      <div class="filter-group">
+        <input type="text" id="filtro-buscar" placeholder="Buscar concepto..." oninput="renderTabla()" style="min-width:160px">
+        <input type="month" id="filtro-mes" oninput="renderTabla()">
+        <button class="btn" onclick="limpiarFiltros()">✕ Limpiar</button>
+      </div>
+      <button class="btn" onclick="exportarCSV()" title="Exportar CSV">↓ CSV</button>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Póliza #</th>
+            <th>Tipo</th>
+            <th>Fecha</th>
+            <th>Concepto</th>
+            <th>Partidas</th>
+            <th style="text-align:right">Monto</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tabla-body"></tbody>
+      </table>
+      <div id="empty-state" class="empty-state" style="display:none">
+        <div class="icon">📋</div>
+        <p>No hay pólizas registradas.<br>Crea tu primera póliza con el botón de arriba.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vista reportes -->
+  <div id="view-reportes" style="display:none">
+    <div class="action-bar">
+      <select id="reporte-mes" style="width:auto" onchange="renderReporte()">
+        <option value="">— Todos los períodos —</option>
+      </select>
+    </div>
+    <div id="reporte-contenido"></div>
+  </div>
+
+</div>
+
+<!-- ── Modal nueva/editar póliza ── -->
+<div class="overlay" id="modal-overlay" onclick="cerrarModalSiFuera(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-titulo">Nueva Póliza</h2>
+      <button class="btn" onclick="cerrarModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Tipo de Póliza</label>
+          <select id="f-tipo" onchange="actualizarFormTipo()">
+            <option value="INGRESO">Ingreso</option>
+            <option value="EGRESO">Egreso</option>
+            <option value="DIARIO">Diario</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Fecha</label>
+          <input type="date" id="f-fecha">
+        </div>
+        <div class="form-group">
+          <label>N° Referencia</label>
+          <input type="text" id="f-referencia" placeholder="Factura, recibo…">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Concepto / Descripción</label>
+          <input type="text" id="f-concepto" placeholder="Descripción general de la póliza">
+        </div>
+      </div>
+
+      <!-- Partidas -->
+      <div class="partidas-section">
+        <h3>Partidas contables</h3>
+        <div id="partidas-container"></div>
+
+        <div class="balance-row" id="balance-row">
+          <div style="grid-column:1/3"></div>
+          <div class="balance-label">
+            <span>Debe: <span class="balance-amounts" id="bal-debe">$0.00</span></span>
+            <span>Haber: <span class="balance-amounts" id="bal-haber">$0.00</span></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px" id="bal-status"></div>
+        </div>
+
+        <button class="btn" onclick="agregarPartida()" style="margin-top:10px">＋ Agregar partida</button>
+      </div>
+
+      <div class="form-row" style="margin-top:16px">
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Notas adicionales</label>
+          <textarea id="f-notas" rows="2" placeholder="Opcional…"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn danger" id="btn-eliminar" onclick="eliminarPoliza()" style="display:none">🗑 Eliminar</button>
+      <button class="btn" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn primary" onclick="guardarPoliza()">Guardar Póliza</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal detalle ── -->
+<div class="overlay" id="detalle-overlay" onclick="cerrarDetalleSiFuera(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="detalle-titulo">Detalle de Póliza</h2>
+      <button class="btn" onclick="cerrarDetalle()">✕</button>
+    </div>
+    <div class="modal-body" id="detalle-body"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="cerrarDetalle()">Cerrar</button>
+      <button class="btn primary" id="detalle-editar" onclick="">✏ Editar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────
+// Estado & persistencia
+// ─────────────────────────────────────────────
+const KEY = 'contabilidad_polizas_v2';
+let polizas = [];
+let tabActual = 'todas';
+let editandoId = null;
+
+function cargar() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    polizas = raw ? JSON.parse(raw) : [];
+  } catch { polizas = []; }
+}
+function guardar() {
+  localStorage.setItem(KEY, JSON.stringify(polizas));
+}
+
+// ─────────────────────────────────────────────
+// Catálogo de cuentas contables por tipo
+// ─────────────────────────────────────────────
+const CUENTAS = {
+  INGRESO: [
+    'Caja','Banco','Ventas de productos','Ventas de servicios',
+    'Descuentos sobre ventas','IVA trasladado','Otras cuentas por cobrar',
+    'Clientes','Anticipo de clientes','Ingresos varios'
+  ],
+  EGRESO: [
+    'Caja','Banco','Proveedores','Compras','Gastos de operación',
+    'Sueldos y salarios','Renta','Servicios (luz/agua/tel)','IVA acreditable',
+    'Retenciones','Impuestos','Honorarios','Otros gastos'
+  ],
+  DIARIO: [
+    'Caja','Banco','Clientes','Proveedores','Inventario','Activo fijo',
+    'Depreciación acumulada','Capital social','Resultados del ejercicio',
+    'IVA trasladado','IVA acreditable','Préstamos bancarios',
+    'Documentos por pagar','Otras cuentas por pagar','Otros activos'
+  ]
+};
+
+// ─────────────────────────────────────────────
+// Utilidades
+// ─────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const fmt = n => '$' + (parseFloat(n)||0).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
+const hoy = () => new Date().toISOString().slice(0,10);
+const nanoid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+
+function toast(msg) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ─────────────────────────────────────────────
+// Tabs
+// ─────────────────────────────────────────────
+function setTab(tab) {
+  tabActual = tab;
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', ['todas','INGRESO','EGRESO','DIARIO','reportes'][i] === tab);
+  });
+  $('view-lista').style.display    = tab === 'reportes' ? 'none' : 'block';
+  $('view-reportes').style.display = tab === 'reportes' ? 'block' : 'none';
+  $('summary-grid').style.display  = tab === 'reportes' ? 'none' : 'grid';
+  if (tab === 'reportes') renderReporte();
+  else renderTabla();
+}
+
+// ─────────────────────────────────────────────
+// Resumen
+// ─────────────────────────────────────────────
+function renderResumen() {
+  const ing = polizas.filter(p=>p.tipo==='INGRESO');
+  const egr = polizas.filter(p=>p.tipo==='EGRESO');
+  const dia = polizas.filter(p=>p.tipo==='DIARIO');
+
+  const sumIng = ing.reduce((s,p)=>s+totalPoliza(p),0);
+  const sumEgr = egr.reduce((s,p)=>s+totalPoliza(p),0);
+
+  $('sum-ingresos').textContent = fmt(sumIng);
+  $('sum-egresos').textContent  = fmt(sumEgr);
+  $('sum-diario').textContent   = dia.length;
+  $('sum-saldo').textContent    = fmt(sumIng - sumEgr);
+  $('cnt-ingresos').textContent = ing.length + ' póliza' + (ing.length!==1?'s':'');
+  $('cnt-egresos').textContent  = egr.length + ' póliza' + (egr.length!==1?'s':'');
+  $('cnt-diario').textContent   = dia.reduce((s,p)=>s+p.partidas.length,0) + ' partidas';
+
+  const hoy = new Date();
+  $('header-periodo').textContent = hoy.toLocaleString('es-MX',{month:'long',year:'numeric'});
+}
+
+function totalPoliza(p) {
+  return p.partidas.reduce((s,pt)=>s+(parseFloat(pt.debe)||0),0);
+}
+
+// ─────────────────────────────────────────────
+// Tabla
+// ─────────────────────────────────────────────
+function renderTabla() {
+  const buscar = ($('filtro-buscar').value||'').toLowerCase();
+  const mes    = $('filtro-mes').value || '';
+
+  let datos = [...polizas].sort((a,b)=>b.fecha.localeCompare(a.fecha));
+
+  if (tabActual !== 'todas') datos = datos.filter(p=>p.tipo===tabActual);
+  if (buscar) datos = datos.filter(p=>p.concepto.toLowerCase().includes(buscar)||(p.referencia||'').toLowerCase().includes(buscar));
+  if (mes)    datos = datos.filter(p=>p.fecha.startsWith(mes));
+
+  const tbody = $('tabla-body');
+  tbody.innerHTML = '';
+  $('empty-state').style.display = datos.length===0 ? 'block' : 'none';
+
+  datos.forEach(p => {
+    const total = totalPoliza(p);
+    const tr = document.createElement('tr');
+    tr.onclick = () => abrirDetalle(p.id);
+    tr.innerHTML = `
+      <td class="num-poliza">${p.numero}</td>
+      <td><span class="tipo-badge tipo-${p.tipo}">${p.tipo}</span></td>
+      <td style="color:var(--text-dim)">${formatFecha(p.fecha)}</td>
+      <td>${p.concepto}</td>
+      <td style="color:var(--text-dim)">${p.partidas.length} partida${p.partidas.length!==1?'s':''}</td>
+      <td style="text-align:right" class="monto-${p.tipo.toLowerCase()}">${fmt(total)}</td>
+      <td onclick="event.stopPropagation()">
+        <button class="btn" onclick="abrirEditar('${p.id}')" style="padding:5px 10px;font-size:11px">✏</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function formatFecha(f) {
+  if (!f) return '';
+  const [y,m,d] = f.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function limpiarFiltros() {
+  $('filtro-buscar').value = '';
+  $('filtro-mes').value = '';
+  renderTabla();
+}
+
+// ─────────────────────────────────────────────
+// Numeración automática
+// ─────────────────────────────────────────────
+function siguienteNumero(tipo) {
+  const prefijos = { INGRESO:'I', EGRESO:'E', DIARIO:'D' };
+  const pref = prefijos[tipo];
+  const existentes = polizas.filter(p=>p.tipo===tipo).map(p=>{
+    const n = parseInt((p.numero||'').replace(pref,''),10);
+    return isNaN(n) ? 0 : n;
+  });
+  const max = existentes.length ? Math.max(...existentes) : 0;
+  return `${pref}${String(max+1).padStart(4,'0')}`;
+}
+
+// ─────────────────────────────────────────────
+// Modal Nueva / Editar
+// ─────────────────────────────────────────────
+function abrirModalNueva() {
+  editandoId = null;
+  $('modal-titulo').textContent = 'Nueva Póliza';
+  $('btn-eliminar').style.display = 'none';
+  $('f-tipo').value = 'INGRESO';
+  $('f-fecha').value = hoy();
+  $('f-referencia').value = '';
+  $('f-concepto').value = '';
+  $('f-notas').value = '';
+  $('partidas-container').innerHTML = '';
+  agregarPartida();
+  agregarPartida();
+  $('modal-overlay').classList.add('open');
+  actualizarBalance();
+}
+
+function abrirEditar(id) {
+  const p = polizas.find(x=>x.id===id);
+  if (!p) return;
+  editandoId = id;
+  $('modal-titulo').textContent = 'Editar Póliza ' + p.numero;
+  $('btn-eliminar').style.display = 'inline-flex';
+  $('f-tipo').value = p.tipo;
+  $('f-fecha').value = p.fecha;
+  $('f-referencia').value = p.referencia || '';
+  $('f-concepto').value = p.concepto;
+  $('f-notas').value = p.notas || '';
+  $('partidas-container').innerHTML = '';
+  p.partidas.forEach(pt => agregarPartida(pt));
+  $('modal-overlay').classList.add('open');
+  actualizarBalance();
+}
+
+function cerrarModal() { $('modal-overlay').classList.remove('open'); }
+function cerrarModalSiFuera(e) { if(e.target===$('modal-overlay')) cerrarModal(); }
+
+function actualizarFormTipo() { actualizarBalance(); }
+
+// ─────────────────────────────────────────────
+// Partidas
+// ─────────────────────────────────────────────
+function agregarPartida(data={}) {
+  const tipo = $('f-tipo').value;
+  const cuentas = CUENTAS[tipo] || CUENTAS.DIARIO;
+  const div = document.createElement('div');
+  div.className = 'partida-row';
+  const optsHTML = cuentas.map(c=>`<option${data.cuenta===c?' selected':''}>${c}</option>`).join('');
+
+  div.innerHTML = `
+    <select class="p-cuenta">
+      <option value="">— Cuenta —</option>
+      ${optsHTML}
+    </select>
+    <input class="p-desc" type="text" placeholder="Descripción" value="${data.descripcion||''}">
+    <input class="p-debe" type="number" placeholder="Debe" min="0" step="0.01" value="${data.debe||''}">
+    <input class="p-haber" type="number" placeholder="Haber" min="0" step="0.01" value="${data.haber||''}">
+    <button class="partida-btn-remove" onclick="this.parentElement.remove();actualizarBalance()">✕</button>`;
+
+  div.querySelectorAll('input,select').forEach(el=>el.addEventListener('input',actualizarBalance));
+  $('partidas-container').appendChild(div);
+  actualizarBalance();
+}
+
+function actualizarBalance() {
+  let debe=0, haber=0;
+  document.querySelectorAll('.partida-row').forEach(row=>{
+    debe  += parseFloat(row.querySelector('.p-debe').value)||0;
+    haber += parseFloat(row.querySelector('.p-haber').value)||0;
+  });
+  $('bal-debe').textContent  = fmt(debe);
+  $('bal-haber').textContent = fmt(haber);
+  const ok = Math.abs(debe-haber)<0.01 && debe>0;
+  $('bal-status').innerHTML = ok
+    ? `<span class="balance-ok">✓ Cuadrado</span>`
+    : `<span class="balance-fail">✗ No cuadra</span>`;
+}
+
+function getPartidas() {
+  const rows = document.querySelectorAll('.partida-row');
+  return Array.from(rows).map(row=>({
+    cuenta:      row.querySelector('.p-cuenta').value,
+    descripcion: row.querySelector('.p-desc').value,
+    debe:        parseFloat(row.querySelector('.p-debe').value)||0,
+    haber:       parseFloat(row.querySelector('.p-haber').value)||0,
+  })).filter(pt=>pt.cuenta||pt.descripcion||pt.debe||pt.haber);
+}
+
+// ─────────────────────────────────────────────
+// Guardar / Eliminar
+// ─────────────────────────────────────────────
+function guardarPoliza() {
+  const tipo     = $('f-tipo').value;
+  const fecha    = $('f-fecha').value;
+  const concepto = $('f-concepto').value.trim();
+
+  if (!fecha)    { toast('⚠ Ingresa una fecha'); return; }
+  if (!concepto) { toast('⚠ Ingresa un concepto'); return; }
+
+  const partidas = getPartidas();
+  if (partidas.length===0) { toast('⚠ Agrega al menos una partida'); return; }
+
+  // Validar balance (solo advertir, no bloquear)
+  const debe  = partidas.reduce((s,p)=>s+p.debe,0);
+  const haber = partidas.reduce((s,p)=>s+p.haber,0);
+  if (Math.abs(debe-haber)>0.01) {
+    if (!confirm('La póliza no cuadra (debe ≠ haber). ¿Guardar de todas formas?')) return;
+  }
+
+  if (editandoId) {
+    const idx = polizas.findIndex(x=>x.id===editandoId);
+    polizas[idx] = {
+      ...polizas[idx],
+      tipo, fecha, concepto,
+      referencia: $('f-referencia').value,
+      notas: $('f-notas').value,
+      partidas,
+      modificado: new Date().toISOString()
+    };
+    toast('✓ Póliza actualizada');
+  } else {
+    polizas.push({
+      id: nanoid(),
+      numero: siguienteNumero(tipo),
+      tipo, fecha, concepto,
+      referencia: $('f-referencia').value,
+      notas: $('f-notas').value,
+      partidas,
+      creado: new Date().toISOString()
+    });
+    toast('✓ Póliza guardada');
+  }
+
+  guardar();
+  cerrarModal();
+  renderResumen();
+  renderTabla();
+}
+
+function eliminarPoliza() {
+  if (!editandoId) return;
+  const p = polizas.find(x=>x.id===editandoId);
+  if (!confirm(`¿Eliminar la póliza ${p?.numero}? Esta acción no se puede deshacer.`)) return;
+  polizas = polizas.filter(x=>x.id!==editandoId);
+  guardar();
+  cerrarModal();
+  renderResumen();
+  renderTabla();
+  toast('🗑 Póliza eliminada');
+}
+
+// ─────────────────────────────────────────────
+// Detalle
+// ─────────────────────────────────────────────
+function abrirDetalle(id) {
+  const p = polizas.find(x=>x.id===id);
+  if (!p) return;
+
+  const debe  = p.partidas.reduce((s,pt)=>s+pt.debe,0);
+  const haber = p.partidas.reduce((s,pt)=>s+pt.haber,0);
+  const bal   = Math.abs(debe-haber)<0.01;
+
+  const filasPartidas = p.partidas.map(pt=>`
+    <tr>
+      <td>${pt.cuenta||'—'}</td>
+      <td>${pt.descripcion||'—'}</td>
+      <td style="text-align:right;color:var(--green)">${pt.debe>0?fmt(pt.debe):''}</td>
+      <td style="text-align:right;color:var(--red)">${pt.haber>0?fmt(pt.haber):''}</td>
+    </tr>`).join('');
+
+  $('detalle-body').innerHTML = `
+    <div class="detalle-header">
+      <div class="detalle-field">
+        <span class="lbl">Número</span>
+        <span class="val" style="color:var(--accent)">${p.numero}</span>
+      </div>
+      <div class="detalle-field">
+        <span class="lbl">Tipo</span>
+        <span class="val"><span class="tipo-badge tipo-${p.tipo}">${p.tipo}</span></span>
+      </div>
+      <div class="detalle-field">
+        <span class="lbl">Fecha</span>
+        <span class="val">${formatFecha(p.fecha)}</span>
+      </div>
+      ${p.referencia?`<div class="detalle-field">
+        <span class="lbl">Referencia</span>
+        <span class="val">${p.referencia}</span>
+      </div>`:''}
+      <div class="detalle-field">
+        <span class="lbl">Balance</span>
+        <span class="val" style="color:${bal?'var(--green)':'var(--red)'}">${bal?'✓ Cuadrado':'✗ No cuadra'}</span>
+      </div>
+    </div>
+    <div style="margin-bottom:16px">
+      <div style="font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Concepto</div>
+      <div style="font-size:14px">${p.concepto}</div>
+    </div>
+    ${p.notas?`<div style="margin-bottom:16px;padding:12px;background:var(--surface2);border-radius:var(--r);color:var(--text-dim);font-size:12px">${p.notas}</div>`:''}
+    <table class="partidas-table">
+      <thead>
+        <tr>
+          <th>Cuenta</th>
+          <th>Descripción</th>
+          <th style="text-align:right">Debe</th>
+          <th style="text-align:right">Haber</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${filasPartidas}
+        <tr class="total-row">
+          <td colspan="2" style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-dim)">Totales</td>
+          <td style="text-align:right;color:var(--green)">${fmt(debe)}</td>
+          <td style="text-align:right;color:var(--red)">${fmt(haber)}</td>
+        </tr>
+      </tbody>
+    </table>`;
+
+  $('detalle-titulo').textContent = `Póliza ${p.numero}`;
+  $('detalle-editar').onclick = ()=>{ cerrarDetalle(); abrirEditar(id); };
+  $('detalle-overlay').classList.add('open');
+}
+function cerrarDetalle() { $('detalle-overlay').classList.remove('open'); }
+function cerrarDetalleSiFuera(e) { if(e.target===$('detalle-overlay')) cerrarDetalle(); }
+
+// ─────────────────────────────────────────────
+// Reportes
+// ─────────────────────────────────────────────
+function llenarSelectMeses() {
+  const meses = [...new Set(polizas.map(p=>p.fecha.slice(0,7)))].sort().reverse();
+  const sel = $('reporte-mes');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Todos los períodos —</option>';
+  meses.forEach(m=>{
+    const [y,mo]=m.split('-');
+    const label=new Date(y,mo-1).toLocaleString('es-MX',{month:'long',year:'numeric'});
+    sel.innerHTML+=`<option value="${m}"${m===cur?' selected':''}>${label.charAt(0).toUpperCase()+label.slice(1)}</option>`;
+  });
+}
+
+function renderReporte() {
+  llenarSelectMeses();
+  const mes = $('reporte-mes').value;
+  let datos = mes ? polizas.filter(p=>p.fecha.startsWith(mes)) : polizas;
+
+  const ing = datos.filter(p=>p.tipo==='INGRESO');
+  const egr = datos.filter(p=>p.tipo==='EGRESO');
+  const dia = datos.filter(p=>p.tipo==='DIARIO');
+  const sumIng = ing.reduce((s,p)=>s+totalPoliza(p),0);
+  const sumEgr = egr.reduce((s,p)=>s+totalPoliza(p),0);
+
+  // Agrupar cuentas para balance de comprobación
+  const cuentas = {};
+  datos.forEach(p=>{
+    p.partidas.forEach(pt=>{
+      if(!pt.cuenta) return;
+      if(!cuentas[pt.cuenta]) cuentas[pt.cuenta]={debe:0,haber:0};
+      cuentas[pt.cuenta].debe  += pt.debe;
+      cuentas[pt.cuenta].haber += pt.haber;
+    });
+  });
+
+  const filasCuentas = Object.entries(cuentas).sort((a,b)=>a[0].localeCompare(b[0])).map(([c,v])=>`
+    <tr>
+      <td>${c}</td>
+      <td style="text-align:right;color:var(--green)">${v.debe>0?fmt(v.debe):''}</td>
+      <td style="text-align:right;color:var(--red)">${v.haber>0?fmt(v.haber):''}</td>
+      <td style="text-align:right;color:${v.debe>=v.haber?'var(--green)':'var(--red)'}">${fmt(Math.abs(v.debe-v.haber))}</td>
+    </tr>`).join('');
+
+  const totalDebe  = Object.values(cuentas).reduce((s,v)=>s+v.debe,0);
+  const totalHaber = Object.values(cuentas).reduce((s,v)=>s+v.haber,0);
+
+  $('reporte-contenido').innerHTML = `
+    <div class="summary-grid" style="margin-bottom:24px">
+      <div class="summary-card ingreso">
+        <div class="label">Ingresos ${mes?'del período':''}</div>
+        <div class="amount">${fmt(sumIng)}</div>
+        <div class="sub">${ing.length} pólizas</div>
+      </div>
+      <div class="summary-card egreso">
+        <div class="label">Egresos ${mes?'del período':''}</div>
+        <div class="amount">${fmt(sumEgr)}</div>
+        <div class="sub">${egr.length} pólizas</div>
+      </div>
+      <div class="summary-card saldo">
+        <div class="label">Resultado ${mes?'del período':''}</div>
+        <div class="amount">${fmt(sumIng-sumEgr)}</div>
+        <div class="sub">${sumIng>=sumEgr?'Superávit':'Déficit'}</div>
+      </div>
+      <div class="summary-card diario">
+        <div class="label">Pólizas Diario</div>
+        <div class="amount">${dia.length}</div>
+        <div class="sub">${dia.reduce((s,p)=>s+p.partidas.length,0)} partidas</div>
+      </div>
+    </div>
+
+    ${Object.keys(cuentas).length>0?`
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th colspan="4" style="font-size:12px;color:var(--text);text-transform:none;letter-spacing:0">
+              Balance de Comprobación ${mes?'— '+new Date($('reporte-mes').value+'-01').toLocaleString('es-MX',{month:'long',year:'numeric'}):'General'}
+            </th>
+          </tr>
+          <tr>
+            <th>Cuenta</th>
+            <th style="text-align:right">Debe</th>
+            <th style="text-align:right">Haber</th>
+            <th style="text-align:right">Saldo</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filasCuentas}
+          <tr style="background:var(--surface2);border-top:1px solid var(--border)">
+            <td style="font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-dim)">Totales</td>
+            <td style="text-align:right;font-weight:700;color:var(--green)">${fmt(totalDebe)}</td>
+            <td style="text-align:right;font-weight:700;color:var(--red)">${fmt(totalHaber)}</td>
+            <td style="text-align:right;font-weight:700;color:${Math.abs(totalDebe-totalHaber)<0.01?'var(--green)':'var(--red)'}">
+              ${Math.abs(totalDebe-totalHaber)<0.01?'✓ Cuadrado':fmt(Math.abs(totalDebe-totalHaber))}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>`:
+    '<div class="empty-state"><div class="icon">📊</div><p>No hay pólizas para el período seleccionado.</p></div>'}`;
+}
+
+// ─────────────────────────────────────────────
+// Exportar CSV
+// ─────────────────────────────────────────────
+function exportarCSV() {
+  const rows = [['Número','Tipo','Fecha','Concepto','Referencia','Cuenta','Descripción','Debe','Haber']];
+  polizas.forEach(p=>{
+    if(p.partidas.length===0){
+      rows.push([p.numero,p.tipo,p.fecha,p.concepto,p.referencia||'','','','','']);
+    } else {
+      p.partidas.forEach(pt=>{
+        rows.push([p.numero,p.tipo,p.fecha,p.concepto,p.referencia||'',pt.cuenta||'',pt.descripcion||'',pt.debe||'',pt.haber||'']);
+      });
+    }
+  });
+  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`polizas_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+// ─────────────────────────────────────────────
+// Init
+// ─────────────────────────────────────────────
+cargar();
+renderResumen();
+renderTabla();
+$('filtro-mes').value = new Date().toISOString().slice(0,7);
+</script>
+</body>
+</html>

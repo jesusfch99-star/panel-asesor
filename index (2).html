@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#1565c0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Panel Asesor — Más por Menos</title>
+<link rel="manifest" href="#" />
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "2b539569-f5bc-487f-8418-26583c484a27",
+      notifyButton: { enable: false },
+      allowLocalhostAsSecureOrigin: true,
+    });
+  });
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --azul:       #1e88e5;
+  --azul-dark:  #1565c0;
+  --azul-light: #e3f2fd;
+  --verde:      #00c853;
+  --rojo:       #f44336;
+  --amarillo:   #ffd54f;
+  --bg:         #0f1923;
+  --bg2:        #162130;
+  --bg3:        #1d2d3e;
+  --border:     rgba(255,255,255,.07);
+  --text:       #e8f0fe;
+  --text2:      #7a9bc4;
+  --radius:     16px;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+body {
+  font-family: 'Sora', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+  z-index: 10;
+}
+.topbar-logo {
+  width: 38px; height: 38px;
+  background: linear-gradient(135deg, var(--azul), var(--azul-dark));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.topbar-title { font-size: 16px; font-weight: 700; }
+.topbar-sub   { font-size: 11px; color: var(--text2); margin-top: 1px; }
+.topbar-status {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--verde); font-weight: 600;
+}
+.status-dot {
+  width: 8px; height: 8px;
+  background: var(--verde); border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ── TABS ── */
+.tabs {
+  display: flex;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.tab {
+  flex: 1; padding: 12px 8px;
+  text-align: center;
+  font-size: 12px; font-weight: 600;
+  color: var(--text2);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all .2s;
+  position: relative;
+}
+.tab.active { color: var(--azul); border-bottom-color: var(--azul); }
+.tab-badge {
+  position: absolute;
+  top: 6px; right: calc(50% - 22px);
+  background: var(--rojo);
+  color: white; border-radius: 10px;
+  font-size: 9px; font-weight: 700;
+  padding: 1px 5px; min-width: 16px;
+  display: none;
+}
+.tab-badge.visible { display: inline-block; }
+
+/* ── PÁGINAS ── */
+.page { display:none; flex:1; overflow:hidden; flex-direction:column; }
+.page.active { display:flex; }
+
+/* ══════════════════════════════════════
+   PÁGINA CHATS
+══════════════════════════════════════ */
+.chats-layout {
+  display: flex; flex: 1; overflow: hidden;
+}
+
+/* Lista de sesiones */
+.sessions-panel {
+  width: 280px;
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  flex-shrink: 0;
+  background: var(--bg2);
+}
+.sessions-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px; font-weight: 700; color: var(--text2);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.sessions-refresh {
+  background: none; border: none; color: var(--azul);
+  cursor: pointer; font-size: 16px; padding: 4px;
+  border-radius: 6px; transition: background .15s;
+}
+.sessions-refresh:hover { background: var(--bg3); }
+.sessions-list { flex:1; overflow-y:auto; }
+.session-item {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background .15s;
+  position: relative;
+}
+.session-item:hover     { background: var(--bg3); }
+.session-item.active    { background: rgba(30,136,229,.15); border-left: 3px solid var(--azul); }
+.session-id   { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.session-preview { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+.session-time { font-size: 10px; color: var(--text2); margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
+.session-unread {
+  position: absolute; top: 14px; right: 14px;
+  background: var(--rojo); color: white;
+  border-radius: 10px; font-size: 10px; font-weight: 700;
+  padding: 2px 6px; min-width: 18px; text-align: center;
+}
+.sessions-empty {
+  padding: 40px 20px; text-align: center; color: var(--text2); font-size: 13px;
+}
+
+/* Panel de conversación */
+.convo-panel {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden;
+}
+.convo-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+  display: flex; align-items: center; gap: 12px;
+  flex-shrink: 0;
+}
+.convo-avatar {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--azul), var(--azul-dark));
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.convo-name   { font-size: 14px; font-weight: 700; }
+.convo-status { font-size: 11px; color: var(--verde); }
+
+.convo-messages {
+  flex: 1; overflow-y: auto; padding: 16px;
+  display: flex; flex-direction: column; gap: 10px;
+  scroll-behavior: smooth;
+}
+.convo-messages::-webkit-scrollbar { width: 4px; }
+.convo-messages::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 4px; }
+
+.msg-bubble {
+  max-width: 75%;
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 14px; line-height: 1.5;
+  animation: msgIn .2s ease;
+}
+@keyframes msgIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+.msg-bubble.cliente {
+  background: var(--bg3);
+  color: var(--text);
+  border-bottom-left-radius: 4px;
+  align-self: flex-start;
+}
+.msg-bubble.asesor {
+  background: linear-gradient(135deg, var(--azul), var(--azul-dark));
+  color: white;
+  border-bottom-right-radius: 4px;
+  align-self: flex-end;
+}
+.msg-bubble.ia {
+  background: rgba(0,200,83,.1);
+  border: 1px solid rgba(0,200,83,.2);
+  color: var(--text);
+  border-bottom-left-radius: 4px;
+  align-self: flex-start;
+}
+.msg-time {
+  font-size: 10px; color: var(--text2); margin-top: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  align-self: flex-end;
+}
+.msg-time.left { align-self: flex-start; }
+
+.convo-input-area {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--bg2);
+  display: flex; gap: 10px; align-items: flex-end;
+  flex-shrink: 0;
+}
+.convo-input {
+  flex: 1;
+  background: var(--bg3);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 10px 16px;
+  font-size: 14px; color: var(--text);
+  font-family: 'Sora', sans-serif;
+  resize: none; outline: none;
+  max-height: 100px; line-height: 1.4;
+  transition: border-color .2s;
+}
+.convo-input:focus { border-color: var(--azul); }
+.convo-input::placeholder { color: var(--text2); }
+.convo-send {
+  width: 42px; height: 42px;
+  background: linear-gradient(135deg, var(--azul), var(--azul-dark));
+  border: none; border-radius: 50%;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: transform .15s, opacity .15s;
+}
+.convo-send:hover   { transform: scale(1.05); }
+.convo-send:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+.convo-send svg { width: 18px; height: 18px; fill: white; }
+
+.convo-empty {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  color: var(--text2); gap: 12px;
+}
+.convo-empty-icon { font-size: 48px; }
+.convo-empty p    { font-size: 14px; }
+
+/* ══════════════════════════════════════
+   PÁGINA PEDIDOS
+══════════════════════════════════════ */
+.pedidos-page {
+  flex: 1; overflow-y: auto; padding: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.pedidos-page::-webkit-scrollbar { width: 4px; }
+.pedidos-page::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 4px; }
+
+.pedido-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  animation: msgIn .2s ease;
+}
+.pedido-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 12px;
+}
+.pedido-cliente { font-size: 15px; font-weight: 700; }
+.pedido-fecha   { font-size: 11px; color: var(--text2); font-family: 'JetBrains Mono', monospace; }
+.pedido-row     { font-size: 13px; color: var(--text2); margin-bottom: 6px; display: flex; gap: 8px; }
+.pedido-row strong { color: var(--text); font-weight: 600; }
+.pedido-total   { font-size: 20px; font-weight: 800; color: var(--azul); margin: 10px 0; }
+.estado-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 12px; border-radius: 20px;
+  font-size: 12px; font-weight: 700;
+}
+.estado-Pendiente  { background: rgba(255,213,79,.15);  color: var(--amarillo); }
+.estado-Confirmado { background: rgba(0,200,83,.15);    color: var(--verde); }
+.estado-Enviado    { background: rgba(30,136,229,.15);  color: var(--azul); }
+.estado-Entregado  { background: rgba(0,200,83,.25);    color: #69f0ae; }
+.estado-Cancelado  { background: rgba(244,67,54,.15);   color: var(--rojo); }
+
+.pedido-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.estado-btn {
+  padding: 6px 14px; border-radius: 20px;
+  font-size: 12px; font-weight: 600;
+  border: 1.5px solid var(--border);
+  background: var(--bg3); color: var(--text);
+  cursor: pointer; transition: all .15s;
+  font-family: 'Sora', sans-serif;
+}
+.estado-btn:hover { border-color: var(--azul); color: var(--azul); }
+
+.pedidos-empty {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  color: var(--text2); gap: 12px; padding: 40px;
+}
+
+/* ── Loader ── */
+.loader {
+  display: flex; align-items: center; gap: 6px;
+  padding: 16px; color: var(--text2); font-size: 13px;
+}
+.loader-dot {
+  width: 6px; height: 6px; background: var(--azul);
+  border-radius: 50%; animation: loaderBounce 1.2s infinite;
+}
+.loader-dot:nth-child(2){animation-delay:.2s}
+.loader-dot:nth-child(3){animation-delay:.4s}
+@keyframes loaderBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+
+/* ── Toast ── */
+#toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--bg3); color: var(--text);
+  padding: 12px 24px; border-radius: 30px;
+  font-size: 13px; font-weight: 600;
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px rgba(0,0,0,.4);
+  z-index: 9999; transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+  white-space: nowrap;
+}
+#toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ── Mobile responsive ── */
+@media (max-width: 600px) {
+  .sessions-panel { width: 100%; border-right: none; }
+  .convo-panel    { display: none; }
+  .sessions-panel.hidden { display: none; }
+  .convo-panel.mobile-active { display: flex; }
+  .back-btn {
+    display: flex !important;
+    align-items: center; gap: 6px;
+    background: none; border: none; color: var(--azul);
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: 'Sora', sans-serif;
+  }
+}
+.back-btn { display: none; }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-logo">🛒</div>
+  <div>
+    <div class="topbar-title">Panel Asesor</div>
+    <div class="topbar-sub">Más por Menos</div>
+  </div>
+  <div class="topbar-status">
+    <div class="status-dot"></div>
+    En línea
+  </div>
+  <button id="btnNotif" onclick="activarNotificaciones()"
+    style="background:none;border:1px solid var(--border);color:var(--amarillo);
+    border-radius:20px;padding:6px 12px;font-size:11px;font-weight:700;
+    cursor:pointer;font-family:inherit;margin-left:8px;white-space:nowrap;">
+    🔕 Activar notif.
+  </button>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('chats')" id="tab-chats">
+    💬 Chats
+    <span class="tab-badge" id="badge-chats"></span>
+  </div>
+  <div class="tab" onclick="switchTab('pedidos')" id="tab-pedidos">
+    📦 Pedidos
+    <span class="tab-badge" id="badge-pedidos"></span>
+  </div>
+  <div class="tab" onclick="switchTab('contabilidad')" id="tab-contabilidad">
+    📒 Contabilidad
+    <span class="tab-badge" id="badge-contabilidad"></span>
+  </div>
+</div>
+
+<!-- ════ PÁGINA CHATS ════ -->
+<div class="page active" id="page-chats">
+  <div class="chats-layout">
+
+    <!-- Lista sesiones -->
+    <div class="sessions-panel" id="sessionsPanel">
+      <div class="sessions-header">
+        Conversaciones
+        <button class="sessions-refresh" onclick="cargarSesiones()" title="Actualizar">↻</button>
+      </div>
+      <div class="sessions-list" id="sessionsList">
+        <div class="loader">
+          <div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div>
+          Cargando...
+        </div>
+      </div>
+    </div>
+
+    <!-- Conversación activa -->
+    <div class="convo-panel" id="convoPanel">
+      <div class="convo-empty" id="convoEmpty">
+        <div class="convo-empty-icon">💬</div>
+        <p>Selecciona una conversación</p>
+      </div>
+
+      <div id="convoActive" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+        <div class="convo-header">
+          <button class="back-btn" id="backBtn" onclick="volverSesiones()">← Volver</button>
+          <div class="convo-avatar">👤</div>
+          <div>
+            <div class="convo-name" id="convoName">—</div>
+            <div class="convo-status">● Activo</div>
+          </div>
+        </div>
+        <div class="convo-messages" id="convoMessages"></div>
+        <div class="convo-input-area">
+          <textarea class="convo-input" id="convoInput" placeholder="Escribe tu respuesta..."
+            rows="1" onkeydown="handleConvoKey(event)" oninput="resizeConvoInput(this)"></textarea>
+          <button class="convo-send" id="convoSendBtn" onclick="enviarRespuesta()">
+            <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════ PÁGINA PEDIDOS ════ -->
+<div class="page" id="page-pedidos">
+  <div class="pedidos-page" id="pedidosList">
+    <div class="loader">
+      <div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div>
+      Cargando pedidos...
+    </div>
+  </div>
+</div>
+
+<!-- ════ PÁGINA CONTABILIDAD ════ -->
+<div class="page" id="page-contabilidad">
+  <iframe
+    src="contabilidad.html"
+    id="iframe-contabilidad"
+    style="width:100%;flex:1;border:none;background:#0f0f0f;"
+    title="Contabilidad">
+  </iframe>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════════════
+//  CONFIGURACIÓN
+// ════════════════════════════════════════
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzOZV3SeKwOA5tBogPMCrE_2P04Srp6Ov1gTHgVo4O7NyBz_qJCHyrbhRcyHckSF8cCOg/exec";
+const POLL_MS    = 4000; // polling cada 4 segundos
+
+let sesionActiva   = null;
+let ultimoMensaje  = "";
+let pollingInterval = null;
+let isMobile       = window.innerWidth <= 600;
+
+// ════════════════════════════════════════
+//  TABS
+// ════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.getElementById(`tab-${tab}`).classList.add("active");
+  document.getElementById(`page-${tab}`).classList.add("active");
+  if (tab === "pedidos") cargarPedidos();
+  if (tab === "contabilidad") {
+    // Cargar iframe solo la primera vez
+    const iframe = document.getElementById("iframe-contabilidad");
+    if (!iframe.src || iframe.src === "about:blank") {
+      iframe.src = "contabilidad.html";
+    }
+  }
+}
+
+// ════════════════════════════════════════
+//  SESIONES DE CHAT
+// ════════════════════════════════════════
+async function cargarSesiones() {
+  try {
+    const res  = await fetch(`${SCRIPT_URL}?action=chat_sesiones`);
+    const data = await res.json();
+    const lista = document.getElementById("sessionsList");
+
+    if (!data.sesiones || data.sesiones.length === 0) {
+      lista.innerHTML = `<div class="sessions-empty">😴 Sin conversaciones aún</div>`;
+      return;
+    }
+
+    // Badge en tab
+    const sinLeer = data.sesiones.reduce((a, s) => a + (s.sin_leer || 0), 0);
+    const badge = document.getElementById("badge-chats");
+    badge.textContent = sinLeer > 0 ? sinLeer : "";
+    badge.classList.toggle("visible", sinLeer > 0);
+
+    lista.innerHTML = data.sesiones.map(s => `
+      <div class="session-item ${sesionActiva === s.session_id ? 'active' : ''}"
+           onclick="abrirSesion('${s.session_id}')">
+        <div class="session-id">👤 ${s.session_id.substring(0, 16)}…</div>
+        <div class="session-preview">${s.ultimo_mensaje || "—"}</div>
+        <div class="session-time">${formatTime(s.timestamp)}</div>
+        ${s.sin_leer > 0 ? `<div class="session-unread">${s.sin_leer}</div>` : ""}
+      </div>
+    `).join("");
+
+  } catch(e) {
+    showToast("⚠️ Error al cargar conversaciones");
+  }
+}
+
+async function abrirSesion(sessionId) {
+  sesionActiva = sessionId;
+  ultimoMensaje = "";
+
+  // Mobile: ocultar lista, mostrar convo
+  if (isMobile) {
+    document.getElementById("sessionsPanel").classList.add("hidden");
+    document.getElementById("convoPanel").classList.add("mobile-active");
+  }
+
+  document.getElementById("convoEmpty").style.display  = "none";
+  document.getElementById("convoActive").style.display = "flex";
+  document.getElementById("convoName").textContent = sessionId.substring(0, 20) + "…";
+
+  // Marcar activo en lista
+  document.querySelectorAll(".session-item").forEach(el => el.classList.remove("active"));
+  event?.currentTarget?.classList.add("active");
+
+  await cargarMensajes();
+  iniciarPolling();
+}
+
+function volverSesiones() {
+  document.getElementById("sessionsPanel").classList.remove("hidden");
+  document.getElementById("convoPanel").classList.remove("mobile-active");
+  sesionActiva = null;
+  detenerPolling();
+}
+
+// ════════════════════════════════════════
+//  MENSAJES
+// ════════════════════════════════════════
+async function cargarMensajes() {
+  if (!sesionActiva) return;
+  try {
+    const url = `${SCRIPT_URL}?action=chat_mensajes&session_id=${sesionActiva}${ultimoMensaje ? `&desde=${ultimoMensaje}` : ""}`;
+    const res  = await fetch(url);
+    const data = await res.json();
+
+    if (!data.mensajes || data.mensajes.length === 0) return;
+
+    const container = document.getElementById("convoMessages");
+    const isBottom  = container.scrollHeight - container.scrollTop <= container.clientHeight + 60;
+
+    data.mensajes.forEach(m => {
+      // evitar duplicados
+      if (m.timestamp <= ultimoMensaje && ultimoMensaje) return;
+
+      const div  = document.createElement("div");
+      div.className = `msg-bubble ${m.rol}`;
+      div.textContent = m.mensaje;
+      container.appendChild(div);
+
+      const time = document.createElement("div");
+      time.className = `msg-time ${m.rol !== 'asesor' ? 'left' : ''}`;
+      time.textContent = formatTime(m.timestamp);
+      container.appendChild(time);
+
+      if (m.timestamp > ultimoMensaje) ultimoMensaje = m.timestamp;
+    });
+
+    if (isBottom) container.scrollTop = container.scrollHeight;
+
+    // Refrescar lista de sesiones para limpiar badges
+    cargarSesiones();
+
+  } catch(e) {
+    console.error("Error mensajes:", e);
+  }
+}
+
+async function enviarRespuesta() {
+  const inp  = document.getElementById("convoInput");
+  const text = inp.value.trim();
+  if (!text || !sesionActiva) return;
+
+  inp.value = "";
+  inp.style.height = "auto";
+  document.getElementById("convoSendBtn").disabled = true;
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action    : "chat_responder",
+        session_id: sesionActiva,
+        mensaje   : text
+      })
+    });
+
+    // Mostrar inmediatamente sin esperar polling
+    const container = document.getElementById("convoMessages");
+    const div = document.createElement("div");
+    div.className = "msg-bubble asesor";
+    div.textContent = text;
+    container.appendChild(div);
+    const time = document.createElement("div");
+    time.className = "msg-time";
+    time.textContent = "ahora";
+    container.appendChild(time);
+    container.scrollTop = container.scrollHeight;
+
+    showToast("✅ Mensaje enviado");
+  } catch(e) {
+    showToast("⚠️ Error al enviar");
+  }
+
+  document.getElementById("convoSendBtn").disabled = false;
+}
+
+// ════════════════════════════════════════
+//  PEDIDOS
+// ════════════════════════════════════════
+async function cargarPedidos() {
+  const lista = document.getElementById("pedidosList");
+  lista.innerHTML = `<div class="loader"><div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div>Cargando...</div>`;
+
+  try {
+    const res  = await fetch(`${SCRIPT_URL}?action=pedidos`);
+    const data = await res.json();
+
+    if (!data.pedidos || data.pedidos.length === 0) {
+      lista.innerHTML = `<div class="pedidos-empty"><div style="font-size:48px">📦</div><p>Sin pedidos aún</p></div>`;
+      return;
+    }
+
+    // Badge
+    const pendientes = data.pedidos.filter(p => p.Estado === "Pendiente").length;
+    const badge = document.getElementById("badge-pedidos");
+    badge.textContent = pendientes > 0 ? pendientes : "";
+    badge.classList.toggle("visible", pendientes > 0);
+
+    lista.innerHTML = data.pedidos.reverse().map(p => `
+      <div class="pedido-card">
+        <div class="pedido-header">
+          <div>
+            <div class="pedido-cliente">👤 ${p.Cliente || "—"}</div>
+            <div class="pedido-fecha">${formatDate(p.Fecha)}</div>
+          </div>
+          <div class="estado-badge estado-${p.Estado || 'Pendiente'}">${p.Estado || "Pendiente"}</div>
+        </div>
+        <div class="pedido-row">📞 <strong>${p.Teléfono || p.Telefono || "—"}</strong></div>
+        <div class="pedido-row">📍 <strong>${p.Dirección || p.Direccion || "—"}</strong></div>
+        <div class="pedido-row">🧴 <strong>${p.Productos || "—"}</strong></div>
+        <div class="pedido-total">${p.Total || "$0"}</div>
+        <div class="pedido-actions">
+          ${["Confirmado","Enviado","Entregado","Cancelado"].map(e =>
+            `<button class="estado-btn" onclick="cambiarEstado(${p._row}, '${e}', this)">${e}</button>`
+          ).join("")}
+        </div>
+      </div>
+    `).join("");
+
+  } catch(e) {
+    lista.innerHTML = `<div class="pedidos-empty"><p>⚠️ Error al cargar pedidos</p></div>`;
+    showToast("⚠️ Error al cargar pedidos");
+  }
+}
+
+async function cambiarEstado(row, estado, btn) {
+  // Visual inmediato
+  const card  = btn.closest(".pedido-card");
+  const badge = card.querySelector(".estado-badge");
+  badge.className = `estado-badge estado-${estado}`;
+  badge.textContent = estado;
+  showToast(`✅ Estado → ${estado}`);
+
+  try {
+    // Actualizar en Sheets vía Apps Script
+    await fetch(SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "actualizar_estado",
+        row,
+        estado
+      })
+    });
+  } catch(e) {
+    showToast("⚠️ Error al actualizar estado");
+  }
+}
+
+// ════════════════════════════════════════
+//  POLLING
+// ════════════════════════════════════════
+function iniciarPolling() {
+  detenerPolling();
+  pollingInterval = setInterval(cargarMensajes, POLL_MS);
+}
+function detenerPolling() {
+  if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
+}
+
+// Polling de sesiones cada 10 seg (para ver nuevas conversaciones)
+setInterval(cargarSesiones, 10000);
+
+// ════════════════════════════════════════
+//  UTILS
+// ════════════════════════════════════════
+function handleConvoKey(e) {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviarRespuesta(); }
+}
+function resizeConvoInput(el) {
+  el.style.height = "auto";
+  el.style.height = Math.min(el.scrollHeight, 100) + "px";
+}
+
+function formatTime(iso) {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    return d.toLocaleTimeString("es-MX", { hour:"2-digit", minute:"2-digit" });
+  } catch { return iso; }
+}
+function formatDate(val) {
+  if (!val) return "";
+  try {
+    const d = new Date(val);
+    return d.toLocaleDateString("es-MX", { day:"2-digit", month:"short", year:"numeric" });
+  } catch { return val; }
+}
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2800);
+}
+
+window.addEventListener("resize", () => { isMobile = window.innerWidth <= 600; });
+
+// ════════════════════════════════════════
+//  ONESIGNAL — Notificaciones push
+// ════════════════════════════════════════
+async function activarNotificaciones() {
+  try {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      const permission = await OneSignal.Notifications.permission;
+      if (!permission) {
+        await OneSignal.Notifications.requestPermission();
+      }
+      const isSubscribed = await OneSignal.User.PushSubscription.optedIn;
+      if (isSubscribed) {
+        showToast("🔔 Notificaciones activadas");
+        document.getElementById("btnNotif").textContent = "🔔 Notificaciones ON";
+        document.getElementById("btnNotif").style.color = "var(--verde)";
+      } else {
+        showToast("⚠️ Activa los permisos en tu navegador");
+      }
+    });
+  } catch(e) {
+    showToast("⚠️ Error al activar notificaciones");
+  }
+}
+
+// Verificar estado al iniciar
+window.addEventListener("load", () => {
+  setTimeout(() => {
+    if (window.OneSignalDeferred) {
+      OneSignalDeferred.push(async function(OneSignal) {
+        const isSubscribed = await OneSignal.User.PushSubscription.optedIn;
+        const btn = document.getElementById("btnNotif");
+        if (btn) {
+          btn.textContent = isSubscribed ? "🔔 Notif. ON" : "🔕 Activar notif.";
+          btn.style.color = isSubscribed ? "var(--verde)" : "var(--amarillo)";
+        }
+      });
+    }
+  }, 2000);
+});
+
+// ════════════════════════════════════════
+//  INICIO
+// ════════════════════════════════════════
+cargarSesiones();
+</script>
+
+</body>
+</html>
