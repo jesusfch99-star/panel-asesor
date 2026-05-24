@@ -396,6 +396,10 @@ body {
     📦 Pedidos
     <span class="tab-badge" id="badge-pedidos"></span>
   </div>
+  <div class="tab" onclick="switchTab('contabilidad')" id="tab-contabilidad">
+    📒 Contabilidad
+    <span class="tab-badge" id="badge-contabilidad"></span>
+  </div>
 </div>
 
 <!-- ════ PÁGINA CHATS ════ -->
@@ -456,6 +460,16 @@ body {
   </div>
 </div>
 
+<!-- ════ PÁGINA CONTABILIDAD ════ -->
+<div class="page" id="page-contabilidad">
+  <iframe
+    src="contabilidad.html"
+    id="iframe-contabilidad"
+    style="width:100%;flex:1;border:none;background:#0f0f0f;"
+    title="Contabilidad">
+  </iframe>
+</div>
+
 <!-- TOAST -->
 <div id="toast"></div>
 
@@ -480,6 +494,13 @@ function switchTab(tab) {
   document.getElementById(`tab-${tab}`).classList.add("active");
   document.getElementById(`page-${tab}`).classList.add("active");
   if (tab === "pedidos") cargarPedidos();
+  if (tab === "contabilidad") {
+    // Cargar iframe solo la primera vez
+    const iframe = document.getElementById("iframe-contabilidad");
+    if (!iframe.src || iframe.src === "about:blank") {
+      iframe.src = "contabilidad.html";
+    }
+  }
 }
 
 // ════════════════════════════════════════
