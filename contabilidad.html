@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contabilidad — Panel Asesor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,300&display=swap');
+  :root{--bg:#0f0f0f;--surface:#181818;--surface2:#222222;--border:#2e2e2e;--accent:#d4ff4e;--accent-d:#a8cc30;--text:#e8e8e8;--text-dim:#888;--red:#ff5a5a;--green:#4edb9a;--blue:#5ab4ff;--orange:#ffb347;--purple:#c084fc;--r:6px}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'IBM Plex Mono',monospace;background:var(--bg);color:var(--text);min-height:100vh;font-size:13px}
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:100}
+  header h1{font-family:'Fraunces',serif;font-size:20px;font-weight:700;color:var(--accent);letter-spacing:-.5px}
+  .badge{background:var(--accent);color:#000;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;text-transform:uppercase}
+  .header-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;overflow-x:auto}
+  .tab-btn{background:none;border:none;color:var(--text-dim);padding:12px 16px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:12px;border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s}
+  .tab-btn:hover{color:var(--text)}
+  .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+  .tab-btn .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px}
+  .main{padding:20px;max-width:1100px;margin:0 auto}
+  .summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:24px}
+  .summary-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;position:relative;overflow:hidden}
+  .summary-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+  .summary-card.ingreso::before{background:var(--green)}.summary-card.egreso::before{background:var(--red)}
+  .summary-card.diario::before{background:var(--blue)}.summary-card.saldo::before{background:var(--accent)}
+  .summary-card.clientes::before{background:var(--purple)}
+  .summary-card .label{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+  .summary-card .amount{font-family:'Fraunces',serif;font-size:24px;font-weight:700;letter-spacing:-1px}
+  .summary-card.ingreso .amount{color:var(--green)}.summary-card.egreso .amount{color:var(--red)}
+  .summary-card.saldo .amount{color:var(--accent)}.summary-card.clientes .amount{color:var(--purple)}
+  .summary-card .sub{font-size:10px;color:var(--text-dim);margin-top:4px}
+  .action-bar{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+  .btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:var(--r);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:12px;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+  .btn:hover{border-color:var(--accent);color:var(--accent)}
+  .btn.primary{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
+  .btn.primary:hover{background:var(--accent-d)}
+  .btn.danger{border-color:var(--red);color:var(--red)}.btn.danger:hover{background:rgba(255,90,90,.1)}
+  input,select,textarea{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--r);font-family:'IBM Plex Mono',monospace;font-size:12px;outline:none;transition:border-color .2s;width:100%}
+  input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+  select option{background:var(--surface2)}
+  .filter-group{display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex:1}
+  .filter-group input,.filter-group select{width:auto}
+  .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+  table{width:100%;border-collapse:collapse}
+  thead th{background:var(--surface2);color:var(--text-dim);font-size:10px;text-transform:uppercase;letter-spacing:.8px;padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+  tbody tr{border-bottom:1px solid var(--border);transition:background .15s;cursor:pointer}
+  tbody tr:last-child{border-bottom:none}
+  tbody tr:hover{background:var(--surface2)}
+  td{padding:11px 14px;vertical-align:middle}
+  .tipo-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:600;text-transform:uppercase}
+  .tipo-INGRESO{background:rgba(78,219,154,.15);color:var(--green)}
+  .tipo-EGRESO{background:rgba(255,90,90,.15);color:var(--red)}
+  .tipo-DIARIO{background:rgba(90,180,255,.15);color:var(--blue)}
+  .monto-ingreso{color:var(--green);font-weight:600}.monto-egreso{color:var(--red);font-weight:600}.monto-diario{color:var(--blue);font-weight:600}
+  .num-poliza{font-weight:600;color:var(--accent);font-size:12px}
+  .empty-state{text-align:center;padding:60px 20px;color:var(--text-dim)}
+  .empty-state .icon{font-size:40px;margin-bottom:12px}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:none;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px}
+  .overlay.open{display:flex}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;width:100%;max-width:720px;margin:auto;animation:slideIn .2s ease}
+  @keyframes slideIn{from{transform:translateY(-16px);opacity:0}to{transform:translateY(0);opacity:1}}
+  .modal-header{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .modal-header h2{font-family:'Fraunces',serif;font-size:18px;font-weight:700}
+  .modal-body{padding:22px}.modal-footer{padding:16px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
+  .form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:14px}
+  .form-group label{display:block;font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+  .partidas-section{margin-top:20px}
+  .partidas-section h3{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+  .partida-row{display:grid;grid-template-columns:2fr 3fr 1fr 1fr auto;gap:8px;align-items:center;margin-bottom:8px}
+  .partida-btn-remove{background:none;border:1px solid var(--border);color:var(--red);width:30px;height:30px;border-radius:var(--r);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
+  .partida-btn-remove:hover{background:rgba(255,90,90,.1)}
+  .balance-row{display:grid;grid-template-columns:2fr 3fr 1fr 1fr auto;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+  .balance-label{grid-column:3;font-size:10px;text-transform:uppercase;color:var(--text-dim);letter-spacing:.8px;display:flex;flex-direction:column;gap:2px}
+  .balance-amounts{font-size:13px;font-weight:600}
+  .balance-ok{color:var(--green)}.balance-fail{color:var(--red)}
+  .detalle-header{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+  .detalle-field{display:flex;flex-direction:column;gap:3px}
+  .detalle-field .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.8px}
+  .detalle-field .val{font-size:14px;font-weight:600}
+  .partidas-table{width:100%;border-collapse:collapse;margin-top:12px}
+  .partidas-table th{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.8px;padding:8px 12px;text-align:left;background:var(--surface2);border-bottom:1px solid var(--border)}
+  .partidas-table td{padding:9px 12px;border-bottom:1px solid var(--border);font-size:12px}
+  .partidas-table tr:last-child td{border-bottom:none}
+  .partidas-table .total-row td{font-weight:700;background:var(--surface2);border-top:1px solid var(--border);border-bottom:none}
+  /* Catálogo */
+  .catalogo-grupo{margin-bottom:24px}
+  .cuenta-mayor-header{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:2px}
+  .cuenta-mayor-num{font-family:'Fraunces',serif;font-size:18px;font-weight:700;color:var(--accent);min-width:60px}
+  .cuenta-mayor-nombre{font-weight:600;font-size:14px;flex:1}
+  .cuenta-mayor-badge{padding:3px 10px;border-radius:20px;font-size:10px;font-weight:600;text-transform:uppercase}
+  .cuenta-menor-row{background:var(--surface);border:1px solid var(--border);border-top:none;padding:11px 18px 11px 40px;display:flex;align-items:center;gap:12px;transition:background .15s;cursor:pointer}
+  .cuenta-menor-row:hover{background:var(--surface2)}
+  .cuenta-menor-row:last-child{border-radius:0 0 var(--r) var(--r)}
+  .cuenta-menor-num{font-size:12px;font-weight:600;color:var(--text-dim);min-width:50px}
+  .cuenta-menor-nombre{flex:1;font-size:13px}
+  .cuenta-menor-info{font-size:11px;color:var(--text-dim)}
+  .add-cuenta-menor{background:none;border:1px dashed var(--border);color:var(--text-dim);padding:8px 18px 8px 40px;width:100%;text-align:left;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:11px;transition:all .2s;border-top:none}
+  .add-cuenta-menor:hover{border-color:var(--accent);color:var(--accent)}
+  /* Charts */
+  .charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin-bottom:24px}
+  .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px}
+  .chart-card h3{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px}
+  .chart-wrap{position:relative;height:220px}
+  /* Clientes */
+  .cliente-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:10px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:border-color .2s}
+  .cliente-card:hover{border-color:var(--accent)}
+  .cliente-avatar{width:40px;height:40px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+  .cliente-info{flex:1;min-width:0}
+  .cliente-nombre{font-weight:600;font-size:13px}
+  .cuenta-num-badge{font-size:10px;color:var(--accent);font-weight:600;margin-top:2px}
+  .cliente-tel{font-size:11px;color:var(--text-dim);margin-top:2px}
+  .deuda-badge{padding:4px 10px;border-radius:20px;font-size:10px;font-weight:600}
+  .deuda-positiva{background:rgba(255,90,90,.15);color:var(--red)}
+  .deuda-cero{background:rgba(78,219,154,.15);color:var(--green)}
+  /* Reporte */
+  .reporte-seccion{margin-bottom:28px}
+  .reporte-seccion h3{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+  .mes-bar{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .mes-bar .mes-label{width:80px;font-size:11px;color:var(--text-dim);flex-shrink:0}
+  .mes-bar .bar-track{flex:1;background:var(--surface2);border-radius:3px;height:8px;overflow:hidden}
+  .mes-bar .bar-fill{height:100%;border-radius:3px;transition:width .4s}
+  .mes-bar .bar-ing{background:var(--green)}.mes-bar .bar-egr{background:var(--red)}
+  .mes-bar .bar-val{font-size:11px;font-weight:600;width:90px;text-align:right}
+  .section-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+  .section-tab{background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);padding:6px 14px;border-radius:20px;cursor:pointer;font-size:11px;font-family:'IBM Plex Mono',monospace;transition:all .2s}
+  .section-tab.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
+  .pill-verde{background:rgba(78,219,154,.15);color:var(--green);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600}
+  .pill-rojo{background:rgba(255,90,90,.15);color:var(--red);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600}
+  .pill-gris{background:var(--surface2);color:var(--text-dim);padding:2px 8px;border-radius:20px;font-size:10px}
+  .toast{position:fixed;bottom:24px;right:24px;background:var(--surface2);border:1px solid var(--accent);color:var(--accent);padding:12px 18px;border-radius:var(--r);font-size:12px;z-index:999;display:none}
+  .toast.show{display:block;animation:fadeIn .3s}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .loading{display:flex;align-items:center;justify-content:center;padding:60px;color:var(--text-dim);gap:10px}
+  .spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  ::-webkit-scrollbar{width:6px;height:6px}
+  ::-webkit-scrollbar-track{background:var(--bg)}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body>
+<header>
+  <h1>📒 Contabilidad</h1>
+  <span class="badge">Panel Asesor</span>
+  <div class="header-right">
+    <span id="header-periodo" style="color:var(--text-dim);font-size:11px;"></span>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="setTab('polizas')"><span class="dot" style="background:var(--text-dim)"></span>Pólizas</button>
+  <button class="tab-btn" onclick="setTab('catalogo')"><span class="dot" style="background:var(--accent)"></span>Catálogo</button>
+  <button class="tab-btn" onclick="setTab('dashboard')"><span class="dot" style="background:var(--orange)"></span>Dashboard</button>
+  <button class="tab-btn" onclick="setTab('reportes')"><span class="dot" style="background:var(--blue)"></span>Reportes</button>
+</div>
+
+<div class="main">
+
+  <!-- ══ PÓLIZAS ══ -->
+  <div id="view-polizas">
+    <div class="summary-grid">
+      <div class="summary-card ingreso"><div class="label">Ingresos</div><div class="amount" id="sum-ingresos">$0</div><div class="sub" id="cnt-ingresos">0 pólizas</div></div>
+      <div class="summary-card egreso"><div class="label">Egresos</div><div class="amount" id="sum-egresos">$0</div><div class="sub" id="cnt-egresos">0 pólizas</div></div>
+      <div class="summary-card saldo"><div class="label">Saldo Neto</div><div class="amount" id="sum-saldo">$0</div><div class="sub">ingresos − egresos</div></div>
+      <div class="summary-card clientes"><div class="label">Por Cobrar</div><div class="amount" id="sum-cobrar">$0</div><div class="sub" id="cnt-cobrar">0 clientes</div></div>
+    </div>
+    <div class="section-tabs">
+      <button class="section-tab active" onclick="setFiltroTipo('todas')">Todas</button>
+      <button class="section-tab" onclick="setFiltroTipo('INGRESO')">Ingresos</button>
+      <button class="section-tab" onclick="setFiltroTipo('EGRESO')">Egresos</button>
+      <button class="section-tab" onclick="setFiltroTipo('DIARIO')">Diario</button>
+    </div>
+    <div class="action-bar">
+      <button class="btn primary" onclick="abrirModalNueva()">＋ Nueva Póliza</button>
+      <div class="filter-group">
+        <input type="text" id="filtro-buscar" placeholder="Buscar..." oninput="renderTabla()" style="min-width:140px">
+        <input type="month" id="filtro-mes" oninput="renderTabla()">
+        <button class="btn" onclick="limpiarFiltros()">✕</button>
+      </div>
+      <button class="btn" onclick="exportarCSV()">↓ CSV</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Póliza #</th><th>Tipo</th><th>Fecha</th><th>Concepto</th><th>Cuenta cliente</th><th style="text-align:right">Monto</th><th></th></tr></thead>
+        <tbody id="tabla-body"></tbody>
+      </table>
+      <div id="empty-state" class="empty-state" style="display:none"><div class="icon">📋</div><p>No hay pólizas. Crea la primera arriba.</p></div>
+    </div>
+  </div>
+
+  <!-- ══ CATÁLOGO ══ -->
+  <div id="view-catalogo" style="display:none">
+    <div class="action-bar">
+      <input type="text" id="filtro-catalogo" placeholder="Buscar cuenta..." oninput="renderCatalogo()" style="max-width:260px">
+    </div>
+    <div id="catalogo-contenido"></div>
+  </div>
+
+  <!-- ══ DASHBOARD ══ -->
+  <div id="view-dashboard" style="display:none">
+    <div class="action-bar">
+      <select id="dash-anio" style="width:auto" onchange="renderDashboard()"></select>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-card" style="grid-column:1/-1">
+        <h3>📈 Ingresos vs Egresos — mensual</h3>
+        <div class="chart-wrap"><canvas id="chart-mensual"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>🥧 Distribución de egresos</h3>
+        <div class="chart-wrap"><canvas id="chart-egresos-dist"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>📊 Utilidad mensual</h3>
+        <div class="chart-wrap"><canvas id="chart-utilidad"></canvas></div>
+      </div>
+    </div>
+    <div class="summary-grid" id="dash-kpis"></div>
+  </div>
+
+  <!-- ══ REPORTES ══ -->
+  <div id="view-reportes" style="display:none">
+    <div class="action-bar">
+      <select id="reporte-mes" style="width:auto" onchange="renderReporte()">
+        <option value="">— Todos los períodos —</option>
+      </select>
+      <button class="btn" onclick="window.print()">🖨 Imprimir</button>
+    </div>
+    <div id="reporte-contenido"></div>
+  </div>
+
+</div>
+
+<!-- ── Modal póliza ── -->
+<div class="overlay" id="modal-overlay" onclick="cerrarModalSiFuera(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-titulo">Nueva Póliza</h2>
+      <button class="btn" onclick="cerrarModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>Tipo</label>
+          <select id="f-tipo" onchange="actualizarFormTipo()">
+            <option value="INGRESO">Ingreso</option>
+            <option value="EGRESO">Egreso</option>
+            <option value="DIARIO">Diario</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Fecha</label><input type="date" id="f-fecha"></div>
+        <div class="form-group"><label>N° Referencia</label><input type="text" id="f-referencia" placeholder="Factura, recibo…"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="grid-column:1/-1"><label>Concepto</label><input type="text" id="f-concepto" placeholder="Descripción general"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Cuenta cliente (catálogo)</label>
+          <select id="f-cliente"><option value="">— Sin cuenta —</option></select>
+        </div>
+        <div class="form-group"><label>Estado de cobro</label>
+          <select id="f-estado-cobro">
+            <option value="pagado">Pagado</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="parcial">Parcial</option>
+          </select>
+        </div>
+      </div>
+      <div class="partidas-section">
+        <h3>Partidas contables</h3>
+        <div id="partidas-container"></div>
+        <div class="balance-row">
+          <div style="grid-column:1/3"></div>
+          <div class="balance-label">
+            <span>Debe: <span class="balance-amounts" id="bal-debe">$0.00</span></span>
+            <span>Haber: <span class="balance-amounts" id="bal-haber">$0.00</span></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px" id="bal-status"></div>
+        </div>
+        <button class="btn" onclick="agregarPartida()" style="margin-top:10px">＋ Partida</button>
+      </div>
+      <div class="form-row" style="margin-top:16px">
+        <div class="form-group" style="grid-column:1/-1"><label>Notas</label><textarea id="f-notas" rows="2" placeholder="Opcional…"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn danger" id="btn-eliminar" onclick="eliminarPoliza()" style="display:none">🗑 Eliminar</button>
+      <button class="btn" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn primary" onclick="guardarPoliza()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal detalle póliza ── -->
+<div class="overlay" id="detalle-overlay" onclick="if(event.target===this)cerrarDetalle()">
+  <div class="modal">
+    <div class="modal-header"><h2 id="detalle-titulo">Detalle</h2><button class="btn" onclick="cerrarDetalle()">✕</button></div>
+    <div class="modal-body" id="detalle-body"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="cerrarDetalle()">Cerrar</button>
+      <button class="btn primary" id="detalle-editar">✏ Editar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal cuenta menor ── -->
+<div class="overlay" id="modal-cuenta" onclick="if(event.target===this)cerrarModalCuenta()">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <h2 id="modal-cuenta-titulo">Nueva Cuenta</h2>
+      <button class="btn" onclick="cerrarModalCuenta()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:14px;padding:12px;background:var(--surface2);border-radius:var(--r)">
+        <div style="font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Cuenta Mayor</div>
+        <div style="font-weight:600" id="modal-cuenta-mayor-label"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Número de cuenta</label><input type="text" id="fc-num" placeholder="Ej: 1001"></div>
+        <div class="form-group"><label>Nombre</label><input type="text" id="fc-nombre" placeholder="Nombre de la cuenta"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Teléfono (si aplica)</label><input type="text" id="fc-tel" placeholder=""></div>
+        <div class="form-group"><label>Email (si aplica)</label><input type="text" id="fc-email" placeholder=""></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Límite de crédito</label><input type="number" id="fc-credito" placeholder="0.00" min="0" step="0.01"></div>
+        <div class="form-group"><label>Saldo inicial</label><input type="number" id="fc-saldo" placeholder="0.00" step="0.01"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="grid-column:1/-1"><label>Notas</label><textarea id="fc-notas" rows="2"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn danger" id="btn-eliminar-cuenta" onclick="eliminarCuenta()" style="display:none">🗑 Eliminar</button>
+      <button class="btn" onclick="cerrarModalCuenta()">Cancelar</button>
+      <button class="btn primary" onclick="guardarCuenta()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal detalle cuenta ── -->
+<div class="overlay" id="detalle-cuenta-overlay" onclick="if(event.target===this)cerrarDetalleCuenta()">
+  <div class="modal">
+    <div class="modal-header"><h2 id="detalle-cuenta-titulo">Cuenta</h2><button class="btn" onclick="cerrarDetalleCuenta()">✕</button></div>
+    <div class="modal-body" id="detalle-cuenta-body"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="cerrarDetalleCuenta()">Cerrar</button>
+      <button class="btn primary" id="detalle-cuenta-editar">✏ Editar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── Config ───
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzOZV3SeKwOA5tBogPMCrE_2P04Srp6Ov1gTHgVo4O7NyBz_qJCHyrbhRcyHckSF8cCOg/exec";
+
+// ─── Cuentas Mayores predefinidas ───
+const CUENTAS_MAYORES = [
+  { num: '1000', nombre: 'CLIENTES',     tipo: 'INGRESO',  color: '#4edb9a', icon: '👥' },
+  { num: '2000', nombre: 'PROVEEDORES',  tipo: 'EGRESO',   color: '#ff5a5a', icon: '🏭' },
+  { num: '3000', nombre: 'BANCOS',       tipo: 'DIARIO',   color: '#5ab4ff', icon: '🏦' },
+  { num: '4000', nombre: 'INGRESOS',     tipo: 'INGRESO',  color: '#4edb9a', icon: '💰' },
+  { num: '5000', nombre: 'GASTOS',       tipo: 'EGRESO',   color: '#ff5a5a', icon: '📤' },
+];
+
+// ─── Estado ───
+let polizas     = [];
+let cuentasMenores = []; // { id, numMayor, num, nombre, tel, email, credito, saldoInicial, notas }
+let tabActual   = 'polizas';
+let filtroTipo  = 'todas';
+let editandoId  = null;
+let editandoCuentaId = null;
+let editandoCuentaMayorNum = null;
+let chartMensual = null, chartEgDist = null, chartUtilidad = null;
+
+const $ = id => document.getElementById(id);
+const fmt = n => '$'+(parseFloat(n)||0).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
+const hoy = () => new Date().toISOString().slice(0,10);
+const nanoid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+function toast(msg){ const el=$('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2400); }
+
+// ─── Persistencia ───
+async function cargar(){
+  try{ cuentasMenores=JSON.parse(localStorage.getItem('pa_cuentas')||'[]'); }catch{ cuentasMenores=[]; }
+  try{
+    const res=await fetch(`${SCRIPT_URL}?action=contabilidad_listar`);
+    const data=await res.json();
+    if(data.ok){
+      polizas=data.polizas.map(p=>({...p,partidas:typeof p.partidas==='string'?JSON.parse(p.partidas||'[]'):(p.partidas||[])}));
+      localStorage.setItem('pa_polizas',JSON.stringify(polizas));
+    } else throw new Error();
+  }catch{
+    try{ polizas=JSON.parse(localStorage.getItem('pa_polizas')||'[]'); }catch{ polizas=[]; }
+  }
+}
+
+async function guardarPolizaRemota(p,edicion=false){
+  localStorage.setItem('pa_polizas',JSON.stringify(polizas));
+  try{ await fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify({action:edicion?'contabilidad_editar':'contabilidad_guardar',poliza:{...p,partidas:JSON.stringify(p.partidas)}})}); }
+  catch{ toast('⚠ Sin conexión — guardado local'); }
+}
+async function eliminarPolizaRemota(id){
+  localStorage.setItem('pa_polizas',JSON.stringify(polizas));
+  try{ await fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'contabilidad_eliminar',id})}); }catch{}
+}
+function guardarCuentas(){ localStorage.setItem('pa_cuentas',JSON.stringify(cuentasMenores)); }
+
+// ─── Tabs ───
+function setTab(tab){
+  tabActual=tab;
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',['polizas','catalogo','dashboard','reportes'][i]===tab));
+  ['polizas','catalogo','dashboard','reportes'].forEach(t=>$(`view-${t}`).style.display=t===tab?'block':'none');
+  if(tab==='catalogo') renderCatalogo();
+  else if(tab==='dashboard') renderDashboard();
+  else if(tab==='reportes') renderReporte();
+  else renderTabla();
+}
+
+// ─── Catálogo ───
+function siguienteNumCuenta(numMayor){
+  const base=parseInt(numMayor);
+  const usados=cuentasMenores.filter(c=>c.numMayor===numMayor).map(c=>parseInt(c.num)||0);
+  let sig=base+1;
+  while(usados.includes(sig)) sig++;
+  return String(sig);
+}
+
+function renderCatalogo(){
+  const buscar=($('filtro-catalogo').value||'').toLowerCase();
+  const cont=$('catalogo-contenido');
+  cont.innerHTML='';
+  CUENTAS_MAYORES.forEach(mayor=>{
+    let menores=cuentasMenores.filter(c=>c.numMayor===mayor.num);
+    if(buscar){
+      menores=menores.filter(c=>(c.nombre||'').toLowerCase().includes(buscar)||(c.num||'').includes(buscar));
+      if(!mayor.nombre.toLowerCase().includes(buscar)&&!menores.length) return;
+    }
+    const totalSaldo=menores.reduce((s,c)=>s+(parseFloat(c.saldoInicial)||0)+saldoCuenta(c.id),0);
+    const div=document.createElement('div');
+    div.className='catalogo-grupo';
+    div.innerHTML=`
+      <div class="cuenta-mayor-header">
+        <span style="font-size:20px">${mayor.icon}</span>
+        <span class="cuenta-mayor-num">${mayor.num}</span>
+        <span class="cuenta-mayor-nombre">${mayor.nombre}</span>
+        <span class="cuenta-mayor-badge" style="background:${mayor.color}22;color:${mayor.color}">${mayor.tipo}</span>
+        <span style="font-size:12px;color:var(--text-dim);margin-left:auto">${menores.length} cuenta${menores.length!==1?'s':''}</span>
+        ${totalSaldo!==0?`<span style="font-size:12px;font-weight:600;color:${totalSaldo>0?'var(--green)':'var(--red)'};margin-left:8px">${fmt(totalSaldo)}</span>`:''}
+      </div>
+      ${menores.sort((a,b)=>parseInt(a.num)-parseInt(b.num)).map(c=>{
+        const saldo=saldoCuenta(c.id);
+        const deuda=deudaCuenta(c.id);
+        return`<div class="cuenta-menor-row" onclick="abrirDetalleCuenta('${c.id}')">
+          <span class="cuenta-menor-num">${c.num}</span>
+          <span class="cuenta-menor-nombre">${c.nombre}</span>
+          ${c.tel?`<span class="cuenta-menor-info">📞 ${c.tel}</span>`:''}
+          ${deuda>0?`<span class="deuda-badge deuda-positiva" style="margin-left:auto">${fmt(deuda)} p/cobrar</span>`:''}
+          ${saldo!==0&&deuda===0?`<span style="margin-left:auto;font-size:11px;font-weight:600;color:var(--text-dim)">${fmt(saldo)}</span>`:''}
+          <button class="btn" onclick="event.stopPropagation();abrirEditarCuenta('${mayor.num}','${c.id}')" style="padding:4px 10px;font-size:11px;margin-left:8px">✏</button>
+        </div>`;
+      }).join('')}
+      <button class="add-cuenta-menor" onclick="abrirModalCuenta('${mayor.num}')">＋ Agregar cuenta a ${mayor.nombre}</button>`;
+    cont.appendChild(div);
+  });
+}
+
+function saldoCuenta(cuentaId){
+  return polizas.filter(p=>p.clienteId===cuentaId&&p.tipo==='INGRESO').reduce((s,p)=>s+totalPoliza(p),0)
+       - polizas.filter(p=>p.clienteId===cuentaId&&p.tipo==='EGRESO').reduce((s,p)=>s+totalPoliza(p),0);
+}
+function deudaCuenta(cuentaId){
+  return polizas.filter(p=>p.clienteId===cuentaId&&p.tipo==='INGRESO'&&p.estadoCobro==='pendiente').reduce((s,p)=>s+totalPoliza(p),0);
+}
+
+function abrirModalCuenta(numMayor){
+  editandoCuentaId=null;
+  editandoCuentaMayorNum=numMayor;
+  const mayor=CUENTAS_MAYORES.find(m=>m.num===numMayor);
+  $('modal-cuenta-titulo').textContent='Nueva Cuenta';
+  $('modal-cuenta-mayor-label').textContent=`${mayor.icon} ${mayor.num} · ${mayor.nombre}`;
+  $('btn-eliminar-cuenta').style.display='none';
+  $('fc-num').value=siguienteNumCuenta(numMayor);
+  ['fc-nombre','fc-tel','fc-email','fc-notas'].forEach(id=>$(id).value='');
+  $('fc-credito').value=''; $('fc-saldo').value='';
+  $('modal-cuenta').classList.add('open');
+}
+
+function abrirEditarCuenta(numMayor,id){
+  const c=cuentasMenores.find(x=>x.id===id); if(!c)return;
+  editandoCuentaId=id;
+  editandoCuentaMayorNum=numMayor;
+  const mayor=CUENTAS_MAYORES.find(m=>m.num===numMayor);
+  $('modal-cuenta-titulo').textContent='Editar Cuenta';
+  $('modal-cuenta-mayor-label').textContent=`${mayor.icon} ${mayor.num} · ${mayor.nombre}`;
+  $('btn-eliminar-cuenta').style.display='inline-flex';
+  $('fc-num').value=c.num||'';
+  $('fc-nombre').value=c.nombre||'';
+  $('fc-tel').value=c.tel||'';
+  $('fc-email').value=c.email||'';
+  $('fc-credito').value=c.credito||'';
+  $('fc-saldo').value=c.saldoInicial||'';
+  $('fc-notas').value=c.notas||'';
+  $('modal-cuenta').classList.add('open');
+}
+
+function cerrarModalCuenta(){ $('modal-cuenta').classList.remove('open'); }
+
+function guardarCuenta(){
+  const nombre=$('fc-nombre').value.trim();
+  if(!nombre){ toast('⚠ Ingresa un nombre'); return; }
+  const num=$('fc-num').value.trim();
+  if(!num){ toast('⚠ Ingresa un número de cuenta'); return; }
+  // Validar que el número no esté duplicado
+  const duplicado=cuentasMenores.find(c=>c.numMayor===editandoCuentaMayorNum&&c.num===num&&c.id!==editandoCuentaId);
+  if(duplicado){ toast('⚠ Ese número ya existe en esta cuenta mayor'); return; }
+
+  if(editandoCuentaId){
+    const idx=cuentasMenores.findIndex(x=>x.id===editandoCuentaId);
+    cuentasMenores[idx]={...cuentasMenores[idx],num,nombre,tel:$('fc-tel').value,email:$('fc-email').value,credito:parseFloat($('fc-credito').value)||0,saldoInicial:parseFloat($('fc-saldo').value)||0,notas:$('fc-notas').value};
+    toast('✓ Cuenta actualizada');
+  } else {
+    cuentasMenores.push({id:nanoid(),numMayor:editandoCuentaMayorNum,num,nombre,tel:$('fc-tel').value,email:$('fc-email').value,credito:parseFloat($('fc-credito').value)||0,saldoInicial:parseFloat($('fc-saldo').value)||0,notas:$('fc-notas').value,creado:new Date().toISOString()});
+    toast('✓ Cuenta creada');
+  }
+  guardarCuentas(); cerrarModalCuenta(); renderCatalogo(); llenarSelectCuentas();
+}
+
+function eliminarCuenta(){
+  if(!editandoCuentaId)return;
+  const c=cuentasMenores.find(x=>x.id===editandoCuentaId);
+  if(!confirm(`¿Eliminar la cuenta ${c?.num} · ${c?.nombre}?`))return;
+  cuentasMenores=cuentasMenores.filter(x=>x.id!==editandoCuentaId);
+  guardarCuentas(); cerrarModalCuenta(); renderCatalogo(); llenarSelectCuentas();
+  toast('🗑 Cuenta eliminada');
+}
+
+function abrirDetalleCuenta(id){
+  const c=cuentasMenores.find(x=>x.id===id); if(!c)return;
+  const mayor=CUENTAS_MAYORES.find(m=>m.num===c.numMayor);
+  const polizasCuenta=polizas.filter(p=>p.clienteId===id);
+  const pendientes=polizasCuenta.filter(p=>p.tipo==='INGRESO'&&p.estadoCobro==='pendiente');
+  const deuda=deudaCuenta(id);
+  $('detalle-cuenta-titulo').textContent=`${c.num} · ${c.nombre}`;
+  $('detalle-cuenta-body').innerHTML=`
+    <div class="detalle-header">
+      <div class="detalle-field"><span class="lbl">Cuenta Mayor</span><span class="val">${mayor?.icon} ${mayor?.num} · ${mayor?.nombre}</span></div>
+      <div class="detalle-field"><span class="lbl">Número</span><span class="val" style="color:var(--accent)">${c.num}</span></div>
+      ${c.tel?`<div class="detalle-field"><span class="lbl">Teléfono</span><span class="val">${c.tel}</span></div>`:''}
+      ${c.email?`<div class="detalle-field"><span class="lbl">Email</span><span class="val">${c.email}</span></div>`:''}
+      ${c.credito?`<div class="detalle-field"><span class="lbl">Límite crédito</span><span class="val">${fmt(c.credito)}</span></div>`:''}
+      ${c.saldoInicial?`<div class="detalle-field"><span class="lbl">Saldo inicial</span><span class="val">${fmt(c.saldoInicial)}</span></div>`:''}
+      <div class="detalle-field"><span class="lbl">Por cobrar</span><span class="val" style="color:${deuda>0?'var(--red)':'var(--green)'}">${fmt(deuda)}</span></div>
+    </div>
+    ${c.notas?`<div style="padding:12px;background:var(--surface2);border-radius:var(--r);font-size:12px;color:var(--text-dim);margin-bottom:16px">${c.notas}</div>`:''}
+    ${pendientes.length?`<h4 style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Por cobrar</h4>
+    <div class="table-wrap" style="margin-bottom:16px"><table><thead><tr><th>Póliza</th><th>Fecha</th><th>Concepto</th><th style="text-align:right">Monto</th></tr></thead>
+    <tbody>${pendientes.map(p=>`<tr><td class="num-poliza">${p.numero}</td><td>${fmtFecha(p.fecha)}</td><td>${p.concepto}</td><td style="text-align:right;color:var(--red)">${fmt(totalPoliza(p))}</td></tr>`).join('')}</tbody>
+    </table></div>`:''}
+    ${polizasCuenta.length?`<h4 style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Historial</h4>
+    <div class="table-wrap"><table><thead><tr><th>Póliza</th><th>Fecha</th><th>Concepto</th><th>Estado</th><th style="text-align:right">Monto</th></tr></thead>
+    <tbody>${polizasCuenta.map(p=>`<tr><td class="num-poliza">${p.numero}</td><td>${fmtFecha(p.fecha)}</td><td>${p.concepto}</td><td><span class="${p.estadoCobro==='pendiente'?'pill-rojo':p.estadoCobro==='parcial'?'pill-gris':'pill-verde'}">${p.estadoCobro||'pagado'}</span></td><td style="text-align:right">${fmt(totalPoliza(p))}</td></tr>`).join('')}</tbody>
+    </table></div>`:'<p style="color:var(--text-dim);font-size:12px">Sin pólizas asociadas</p>'}`;
+  $('detalle-cuenta-editar').onclick=()=>{cerrarDetalleCuenta();abrirEditarCuenta(c.numMayor,id);};
+  $('detalle-cuenta-overlay').classList.add('open');
+}
+function cerrarDetalleCuenta(){ $('detalle-cuenta-overlay').classList.remove('open'); }
+
+// ─── Select cuentas en póliza ───
+function llenarSelectCuentas(){
+  const sel=$('f-cliente');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">— Sin cuenta —</option>';
+  CUENTAS_MAYORES.forEach(mayor=>{
+    const menores=cuentasMenores.filter(c=>c.numMayor===mayor.num);
+    if(!menores.length)return;
+    const grp=document.createElement('optgroup');
+    grp.label=`${mayor.icon} ${mayor.num} · ${mayor.nombre}`;
+    menores.sort((a,b)=>parseInt(a.num)-parseInt(b.num)).forEach(c=>{
+      const o=document.createElement('option');
+      o.value=c.id; o.textContent=`${c.num} · ${c.nombre}`; grp.appendChild(o);
+    });
+    sel.appendChild(grp);
+  });
+  sel.value=cur;
+}
+
+// ─── Resumen ───
+function totalPoliza(p){ return p.partidas.reduce((s,pt)=>s+(parseFloat(pt.debe)||0),0); }
+function renderResumen(){
+  const ing=polizas.filter(p=>p.tipo==='INGRESO'), egr=polizas.filter(p=>p.tipo==='EGRESO');
+  const sumIng=ing.reduce((s,p)=>s+totalPoliza(p),0), sumEgr=egr.reduce((s,p)=>s+totalPoliza(p),0);
+  const pendientes=polizas.filter(p=>p.tipo==='INGRESO'&&p.estadoCobro==='pendiente');
+  const sumCobrar=pendientes.reduce((s,p)=>s+totalPoliza(p),0);
+  const cuentasCon=new Set(pendientes.map(p=>p.clienteId).filter(Boolean)).size;
+  $('sum-ingresos').textContent=fmt(sumIng); $('sum-egresos').textContent=fmt(sumEgr);
+  $('sum-saldo').textContent=fmt(sumIng-sumEgr); $('sum-cobrar').textContent=fmt(sumCobrar);
+  $('cnt-ingresos').textContent=ing.length+' póliza'+(ing.length!==1?'s':'');
+  $('cnt-egresos').textContent=egr.length+' póliza'+(egr.length!==1?'s':'');
+  $('cnt-cobrar').textContent=cuentasCon+' cuenta'+(cuentasCon!==1?'s':'');
+  const h=new Date(); $('header-periodo').textContent=h.toLocaleString('es-MX',{month:'long',year:'numeric'});
+}
+
+// ─── Tabla pólizas ───
+function setFiltroTipo(t){
+  filtroTipo=t;
+  document.querySelectorAll('.section-tab').forEach((b,i)=>b.classList.toggle('active',['todas','INGRESO','EGRESO','DIARIO'][i]===t));
+  renderTabla();
+}
+function renderTabla(){
+  const buscar=($('filtro-buscar').value||'').toLowerCase(), mes=$('filtro-mes').value||'';
+  let datos=[...polizas].sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+  if(filtroTipo!=='todas') datos=datos.filter(p=>p.tipo===filtroTipo);
+  if(buscar) datos=datos.filter(p=>(p.concepto||'').toLowerCase().includes(buscar)||(p.referencia||'').toLowerCase().includes(buscar));
+  if(mes) datos=datos.filter(p=>(p.fecha||'').startsWith(mes));
+  const tbody=$('tabla-body'); tbody.innerHTML='';
+  $('empty-state').style.display=datos.length===0?'block':'none';
+  datos.forEach(p=>{
+    const total=totalPoliza(p);
+    const cuenta=cuentasMenores.find(c=>c.id===p.clienteId);
+    const estadoBadge=p.estadoCobro==='pendiente'?`<span class="pill-rojo">Por cobrar</span>`:p.estadoCobro==='parcial'?`<span class="pill-gris">Parcial</span>`:'';
+    const tr=document.createElement('tr');
+    tr.onclick=()=>abrirDetalle(p.id);
+    tr.innerHTML=`<td class="num-poliza">${p.numero}</td>
+      <td><span class="tipo-badge tipo-${p.tipo}">${p.tipo}</span></td>
+      <td style="color:var(--text-dim)">${fmtFecha(p.fecha)}</td>
+      <td>${p.concepto||''} ${estadoBadge}</td>
+      <td style="color:var(--accent);font-size:11px">${cuenta?cuenta.num+' · '+cuenta.nombre:''}</td>
+      <td style="text-align:right" class="monto-${p.tipo.toLowerCase()}">${fmt(total)}</td>
+      <td onclick="event.stopPropagation()"><button class="btn" onclick="abrirEditar('${p.id}')" style="padding:5px 10px;font-size:11px">✏</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+function fmtFecha(f){ if(!f)return''; try{const[y,m,d]=f.split('-');return`${d}/${m}/${y}`;}catch{return f;} }
+function limpiarFiltros(){ $('filtro-buscar').value=''; $('filtro-mes').value=''; renderTabla(); }
+
+// ─── Numeración ───
+function siguienteNumero(tipo){
+  const pref={INGRESO:'I',EGRESO:'E',DIARIO:'D'}[tipo];
+  const nums=polizas.filter(p=>p.tipo===tipo).map(p=>parseInt((p.numero||'').replace(pref,''),10)).filter(n=>!isNaN(n));
+  return`${pref}${String((nums.length?Math.max(...nums):0)+1).padStart(4,'0')}`;
+}
+
+// ─── Partidas ───
+function agregarPartida(data={}){
+  const div=document.createElement('div'); div.className='partida-row';
+  // Construir opciones del catálogo completo
+  let optsHTML='<option value="">— Cuenta —</option>';
+  CUENTAS_MAYORES.forEach(mayor=>{
+    optsHTML+=`<optgroup label="${mayor.icon} ${mayor.num} · ${mayor.nombre}">`;
+    // Cuentas menores registradas
+    cuentasMenores.filter(c=>c.numMayor===mayor.num).sort((a,b)=>parseInt(a.num)-parseInt(b.num)).forEach(c=>{
+      optsHTML+=`<option value="${c.num} · ${c.nombre}"${data.cuenta===`${c.num} · ${c.nombre}`?' selected':''}>${c.num} · ${c.nombre}</option>`;
+    });
+    optsHTML+=`</optgroup>`;
+  });
+  div.innerHTML=`
+    <select class="p-cuenta">${optsHTML}</select>
+    <input class="p-desc" type="text" placeholder="Descripción" value="${data.descripcion||''}">
+    <input class="p-debe" type="number" placeholder="Debe" min="0" step="0.01" value="${data.debe||''}">
+    <input class="p-haber" type="number" placeholder="Haber" min="0" step="0.01" value="${data.haber||''}">
+    <button class="partida-btn-remove" onclick="this.parentElement.remove();actualizarBalance()">✕</button>`;
+  div.querySelectorAll('input,select').forEach(el=>el.addEventListener('input',actualizarBalance));
+  $('partidas-container').appendChild(div);
+  actualizarBalance();
+}
+
+function actualizarBalance(){
+  let debe=0,haber=0;
+  document.querySelectorAll('.partida-row').forEach(r=>{
+    debe+=(parseFloat(r.querySelector('.p-debe').value)||0);
+    haber+=(parseFloat(r.querySelector('.p-haber').value)||0);
+  });
+  $('bal-debe').textContent=fmt(debe); $('bal-haber').textContent=fmt(haber);
+  const ok=Math.abs(debe-haber)<0.01&&debe>0;
+  $('bal-status').innerHTML=ok?`<span class="balance-ok">✓ Cuadrado</span>`:`<span class="balance-fail">✗ No cuadra</span>`;
+}
+
+function getPartidas(){
+  return Array.from(document.querySelectorAll('.partida-row')).map(r=>({
+    cuenta:r.querySelector('.p-cuenta').value,
+    descripcion:r.querySelector('.p-desc').value,
+    debe:parseFloat(r.querySelector('.p-debe').value)||0,
+    haber:parseFloat(r.querySelector('.p-haber').value)||0
+  })).filter(pt=>pt.cuenta||pt.descripcion||pt.debe||pt.haber);
+}
+
+// ─── Modal póliza ───
+function abrirModalNueva(){
+  editandoId=null;
+  $('modal-titulo').textContent='Nueva Póliza';
+  $('btn-eliminar').style.display='none';
+  $('f-tipo').value='INGRESO'; $('f-fecha').value=hoy();
+  $('f-referencia').value=''; $('f-concepto').value=''; $('f-notas').value='';
+  $('f-estado-cobro').value='pagado';
+  llenarSelectCuentas(); $('f-cliente').value='';
+  $('partidas-container').innerHTML='';
+  agregarPartida(); agregarPartida();
+  $('modal-overlay').classList.add('open'); actualizarBalance();
+}
+
+function abrirEditar(id){
+  const p=polizas.find(x=>x.id===id); if(!p)return;
+  editandoId=id;
+  $('modal-titulo').textContent='Editar '+p.numero;
+  $('btn-eliminar').style.display='inline-flex';
+  $('f-tipo').value=p.tipo; $('f-fecha').value=p.fecha;
+  $('f-referencia').value=p.referencia||''; $('f-concepto').value=p.concepto;
+  $('f-notas').value=p.notas||''; $('f-estado-cobro').value=p.estadoCobro||'pagado';
+  llenarSelectCuentas(); $('f-cliente').value=p.clienteId||'';
+  $('partidas-container').innerHTML='';
+  (p.partidas||[]).forEach(pt=>agregarPartida(pt));
+  $('modal-overlay').classList.add('open'); actualizarBalance();
+}
+
+function cerrarModal(){ $('modal-overlay').classList.remove('open'); }
+function cerrarModalSiFuera(e){ if(e.target===$('modal-overlay'))cerrarModal(); }
+function actualizarFormTipo(){ actualizarBalance(); }
+
+async function guardarPoliza(){
+  const tipo=$('f-tipo').value, fecha=$('f-fecha').value, concepto=$('f-concepto').value.trim();
+  if(!fecha){toast('⚠ Ingresa una fecha');return;}
+  if(!concepto){toast('⚠ Ingresa un concepto');return;}
+  const partidas=getPartidas();
+  if(!partidas.length){toast('⚠ Agrega al menos una partida');return;}
+  const debe=partidas.reduce((s,p)=>s+p.debe,0), haber=partidas.reduce((s,p)=>s+p.haber,0);
+  if(Math.abs(debe-haber)>0.01&&!confirm('La póliza no cuadra. ¿Guardar de todas formas?'))return;
+  const estadoCobro=$('f-estado-cobro').value, clienteId=$('f-cliente').value||null;
+  if(editandoId){
+    const idx=polizas.findIndex(x=>x.id===editandoId);
+    polizas[idx]={...polizas[idx],tipo,fecha,concepto,referencia:$('f-referencia').value,notas:$('f-notas').value,partidas,estadoCobro,clienteId,modificado:new Date().toISOString()};
+    await guardarPolizaRemota(polizas[idx],true); toast('✓ Póliza actualizada');
+  } else {
+    const nueva={id:nanoid(),numero:siguienteNumero(tipo),tipo,fecha,concepto,referencia:$('f-referencia').value,notas:$('f-notas').value,partidas,estadoCobro,clienteId,creado:new Date().toISOString()};
+    polizas.push(nueva); await guardarPolizaRemota(nueva,false); toast('✓ Póliza guardada');
+  }
+  cerrarModal(); renderResumen(); renderTabla();
+}
+
+async function eliminarPoliza(){
+  if(!editandoId)return;
+  const p=polizas.find(x=>x.id===editandoId);
+  if(!confirm(`¿Eliminar póliza ${p?.numero}?`))return;
+  polizas=polizas.filter(x=>x.id!==editandoId);
+  await eliminarPolizaRemota(editandoId);
+  cerrarModal(); renderResumen(); renderTabla(); toast('🗑 Póliza eliminada');
+}
+
+// ─── Detalle póliza ───
+function abrirDetalle(id){
+  const p=polizas.find(x=>x.id===id); if(!p)return;
+  const debe=p.partidas.reduce((s,pt)=>s+pt.debe,0), haber=p.partidas.reduce((s,pt)=>s+pt.haber,0);
+  const bal=Math.abs(debe-haber)<0.01;
+  const cuenta=cuentasMenores.find(c=>c.id===p.clienteId);
+  const estadoHtml=p.estadoCobro==='pendiente'?`<span class="pill-rojo">Por cobrar</span>`:p.estadoCobro==='parcial'?`<span class="pill-gris">Parcial</span>`:`<span class="pill-verde">Pagado</span>`;
+  $('detalle-body').innerHTML=`
+    <div class="detalle-header">
+      <div class="detalle-field"><span class="lbl">Número</span><span class="val" style="color:var(--accent)">${p.numero}</span></div>
+      <div class="detalle-field"><span class="lbl">Tipo</span><span class="val"><span class="tipo-badge tipo-${p.tipo}">${p.tipo}</span></span></div>
+      <div class="detalle-field"><span class="lbl">Fecha</span><span class="val">${fmtFecha(p.fecha)}</span></div>
+      ${p.referencia?`<div class="detalle-field"><span class="lbl">Ref</span><span class="val">${p.referencia}</span></div>`:''}
+      <div class="detalle-field"><span class="lbl">Balance</span><span class="val" style="color:${bal?'var(--green)':'var(--red)'}">${bal?'✓ Cuadrado':'✗ No cuadra'}</span></div>
+      <div class="detalle-field"><span class="lbl">Cobro</span><span class="val">${estadoHtml}</span></div>
+      ${cuenta?`<div class="detalle-field"><span class="lbl">Cuenta</span><span class="val" style="color:var(--accent)">${cuenta.num} · ${cuenta.nombre}</span></div>`:''}
+    </div>
+    <div style="margin-bottom:16px"><div style="font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Concepto</div><div style="font-size:14px">${p.concepto}</div></div>
+    ${p.notas?`<div style="margin-bottom:16px;padding:12px;background:var(--surface2);border-radius:var(--r);color:var(--text-dim);font-size:12px">${p.notas}</div>`:''}
+    <table class="partidas-table">
+      <thead><tr><th>Cuenta</th><th>Descripción</th><th style="text-align:right">Debe</th><th style="text-align:right">Haber</th></tr></thead>
+      <tbody>
+        ${p.partidas.map(pt=>`<tr><td>${pt.cuenta||'—'}</td><td>${pt.descripcion||'—'}</td><td style="text-align:right;color:var(--green)">${pt.debe>0?fmt(pt.debe):''}</td><td style="text-align:right;color:var(--red)">${pt.haber>0?fmt(pt.haber):''}</td></tr>`).join('')}
+        <tr class="total-row"><td colspan="2" style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-dim)">Totales</td><td style="text-align:right;color:var(--green)">${fmt(debe)}</td><td style="text-align:right;color:var(--red)">${fmt(haber)}</td></tr>
+      </tbody>
+    </table>`;
+  $('detalle-titulo').textContent=`Póliza ${p.numero}`;
+  $('detalle-editar').onclick=()=>{cerrarDetalle();abrirEditar(id);};
+  $('detalle-overlay').classList.add('open');
+}
+function cerrarDetalle(){ $('detalle-overlay').classList.remove('open'); }
+
+// ─── Dashboard ───
+function llenarAnios(){
+  const anios=[...new Set(polizas.map(p=>(p.fecha||'').slice(0,4)).filter(Boolean))].sort().reverse();
+  if(!anios.length) anios.push(new Date().getFullYear().toString());
+  const sel=$('dash-anio'); sel.innerHTML='';
+  anios.forEach(a=>{ const o=document.createElement('option');o.value=a;o.textContent=a;sel.appendChild(o); });
+}
+function renderDashboard(){
+  llenarAnios();
+  const anio=parseInt($('dash-anio').value||new Date().getFullYear());
+  const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const ingMes=Array(12).fill(0), egrMes=Array(12).fill(0);
+  const cuentasEgr={};
+  polizas.forEach(p=>{
+    if(!p.fecha)return;
+    const[y,m]=p.fecha.split('-'); if(parseInt(y)!==anio)return;
+    const mi=parseInt(m)-1;
+    if(p.tipo==='INGRESO') ingMes[mi]+=totalPoliza(p);
+    if(p.tipo==='EGRESO'){ egrMes[mi]+=totalPoliza(p); p.partidas.forEach(pt=>{ if(pt.haber>0){ cuentasEgr[pt.cuenta||'Otros']=(cuentasEgr[pt.cuenta||'Otros']||0)+pt.haber; }}); }
+  });
+  const utilidad=ingMes.map((v,i)=>v-egrMes[i]);
+  const chartOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#888',font:{size:11}}},tooltip:{callbacks:{label:c=>fmt(c.raw)}}},scales:{x:{ticks:{color:'#888',font:{size:10}},grid:{color:'#2e2e2e'}},y:{ticks:{color:'#888',font:{size:10},callback:v=>fmt(v)},grid:{color:'#2e2e2e'}}}};
+  if(chartMensual)chartMensual.destroy();
+  chartMensual=new Chart($('chart-mensual'),{type:'bar',data:{labels:meses,datasets:[{label:'Ingresos',data:ingMes,backgroundColor:'rgba(78,219,154,.7)',borderRadius:4},{label:'Egresos',data:egrMes,backgroundColor:'rgba(255,90,90,.7)',borderRadius:4}]},options:chartOpts});
+  if(chartUtilidad)chartUtilidad.destroy();
+  chartUtilidad=new Chart($('chart-utilidad'),{type:'line',data:{labels:meses,datasets:[{label:'Utilidad',data:utilidad,borderColor:'#d4ff4e',backgroundColor:'rgba(212,255,78,.1)',tension:.3,fill:true,pointBackgroundColor:'#d4ff4e',pointRadius:4}]},options:chartOpts});
+  if(chartEgDist)chartEgDist.destroy();
+  const egKeys=Object.keys(cuentasEgr).slice(0,7), egVals=egKeys.map(k=>cuentasEgr[k]);
+  const egColors=['#ff5a5a','#ffb347','#5ab4ff','#c084fc','#4edb9a','#f87171','#fb923c'];
+  if(egKeys.length) chartEgDist=new Chart($('chart-egresos-dist'),{type:'doughnut',data:{labels:egKeys,datasets:[{data:egVals,backgroundColor:egColors.slice(0,egKeys.length),borderColor:'#181818',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#888',font:{size:10},boxWidth:12}},tooltip:{callbacks:{label:c=>`${c.label}: ${fmt(c.raw)}`}}}}});
+  const totalIng=ingMes.reduce((a,b)=>a+b,0), totalEgr=egrMes.reduce((a,b)=>a+b,0);
+  const margen=totalIng>0?((totalIng-totalEgr)/totalIng*100).toFixed(1):0;
+  const mejorMes=meses[ingMes.indexOf(Math.max(...ingMes))];
+  $('dash-kpis').innerHTML=`
+    <div class="summary-card ingreso"><div class="label">Ingresos ${anio}</div><div class="amount">${fmt(totalIng)}</div><div class="sub">año completo</div></div>
+    <div class="summary-card egreso"><div class="label">Egresos ${anio}</div><div class="amount">${fmt(totalEgr)}</div><div class="sub">año completo</div></div>
+    <div class="summary-card saldo"><div class="label">Utilidad ${anio}</div><div class="amount">${fmt(totalIng-totalEgr)}</div><div class="sub">margen ${margen}%</div></div>
+    <div class="summary-card diario"><div class="label">Mejor mes</div><div class="amount" style="color:var(--blue)">${mejorMes}</div><div class="sub">${fmt(Math.max(...ingMes))}</div></div>`;
+}
+
+// ─── Reportes ───
+function llenarSelectMeses(){
+  const meses=[...new Set(polizas.map(p=>(p.fecha||'').slice(0,7)).filter(Boolean))].sort().reverse();
+  const sel=$('reporte-mes'); const cur=sel.value;
+  sel.innerHTML='<option value="">— Todos los períodos —</option>';
+  meses.forEach(m=>{ const[y,mo]=m.split('-'); const lbl=new Date(y,mo-1).toLocaleString('es-MX',{month:'long',year:'numeric'}); const o=document.createElement('option');o.value=m;o.textContent=lbl.charAt(0).toUpperCase()+lbl.slice(1);sel.appendChild(o); });
+  if(cur)sel.value=cur;
+}
+function renderReporte(){
+  llenarSelectMeses();
+  const mes=$('reporte-mes').value;
+  let datos=mes?polizas.filter(p=>(p.fecha||'').startsWith(mes)):polizas;
+  const ing=datos.filter(p=>p.tipo==='INGRESO'), egr=datos.filter(p=>p.tipo==='EGRESO');
+  const sumIng=ing.reduce((s,p)=>s+totalPoliza(p),0), sumEgr=egr.reduce((s,p)=>s+totalPoliza(p),0);
+  const cuentas={};
+  datos.forEach(p=>p.partidas.forEach(pt=>{ if(!pt.cuenta)return; if(!cuentas[pt.cuenta])cuentas[pt.cuenta]={debe:0,haber:0}; cuentas[pt.cuenta].debe+=pt.debe; cuentas[pt.cuenta].haber+=pt.haber; }));
+  const pendientes=datos.filter(p=>p.tipo==='INGRESO'&&p.estadoCobro==='pendiente');
+  const filasBalComp=Object.entries(cuentas).sort((a,b)=>a[0].localeCompare(b[0])).map(([c,v])=>`<tr><td>${c}</td><td style="text-align:right;color:var(--green)">${v.debe>0?fmt(v.debe):''}</td><td style="text-align:right;color:var(--red)">${v.haber>0?fmt(v.haber):''}</td><td style="text-align:right;color:${v.debe>=v.haber?'var(--green)':'var(--red)'}">${fmt(Math.abs(v.debe-v.haber))}</td></tr>`).join('');
+  const totDebe=Object.values(cuentas).reduce((s,v)=>s+v.debe,0), totHaber=Object.values(cuentas).reduce((s,v)=>s+v.haber,0);
+  $('reporte-contenido').innerHTML=`
+    <div class="summary-grid" style="margin-bottom:24px">
+      <div class="summary-card ingreso"><div class="label">Ingresos</div><div class="amount">${fmt(sumIng)}</div><div class="sub">${ing.length} pólizas</div></div>
+      <div class="summary-card egreso"><div class="label">Egresos</div><div class="amount">${fmt(sumEgr)}</div><div class="sub">${egr.length} pólizas</div></div>
+      <div class="summary-card saldo"><div class="label">Resultado</div><div class="amount">${fmt(sumIng-sumEgr)}</div><div class="sub">${sumIng>=sumEgr?'Superávit':'Déficit'}</div></div>
+      <div class="summary-card clientes"><div class="label">Por cobrar</div><div class="amount">${fmt(pendientes.reduce((s,p)=>s+totalPoliza(p),0))}</div><div class="sub">${pendientes.length} pólizas</div></div>
+    </div>
+    ${pendientes.length?`<div class="reporte-seccion"><h3>📋 Cuentas por cobrar pendientes</h3><div class="table-wrap"><table><thead><tr><th>Póliza</th><th>Fecha</th><th>Concepto</th><th>Cuenta</th><th style="text-align:right">Monto</th></tr></thead><tbody>${pendientes.map(p=>{const c=cuentasMenores.find(x=>x.id===p.clienteId);return`<tr><td class="num-poliza">${p.numero}</td><td>${fmtFecha(p.fecha)}</td><td>${p.concepto}</td><td style="color:var(--accent);font-size:11px">${c?c.num+' · '+c.nombre:'-'}</td><td style="text-align:right;color:var(--red)">${fmt(totalPoliza(p))}</td></tr>`;}).join('')}</tbody></table></div></div>`:''}
+    ${Object.keys(cuentas).length?`<div class="reporte-seccion"><h3>⚖ Balance de Comprobación</h3><div class="table-wrap"><table><thead><tr><th>Cuenta</th><th style="text-align:right">Debe</th><th style="text-align:right">Haber</th><th style="text-align:right">Saldo</th></tr></thead><tbody>${filasBalComp}<tr style="background:var(--surface2);font-weight:700"><td style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-dim)">Totales</td><td style="text-align:right;color:var(--green)">${fmt(totDebe)}</td><td style="text-align:right;color:var(--red)">${fmt(totHaber)}</td><td style="text-align:right;color:${Math.abs(totDebe-totHaber)<0.01?'var(--green)':'var(--red)'}">${Math.abs(totDebe-totHaber)<0.01?'✓ Cuadrado':fmt(Math.abs(totDebe-totHaber))}</td></tr></tbody></table></div></div>`:''}
+    <div class="reporte-seccion"><h3>📅 Ingresos vs Egresos por mes</h3>${renderBarrasMeses(datos)}</div>`;
+}
+
+function renderBarrasMeses(datos){
+  const mapa={};
+  datos.forEach(p=>{ if(!p.fecha)return; const m=p.fecha.slice(0,7); if(!mapa[m])mapa[m]={ing:0,egr:0}; if(p.tipo==='INGRESO')mapa[m].ing+=totalPoliza(p); if(p.tipo==='EGRESO')mapa[m].egr+=totalPoliza(p); });
+  const meses=Object.keys(mapa).sort().reverse();
+  if(!meses.length)return'<p style="color:var(--text-dim)">Sin datos</p>';
+  const maxVal=Math.max(...meses.map(m=>Math.max(mapa[m].ing,mapa[m].egr)),1);
+  return meses.map(m=>{ const[y,mo]=m.split('-'); const lbl=new Date(y,mo-1).toLocaleString('es-MX',{month:'short',year:'2-digit'}); const wI=(mapa[m].ing/maxVal*100).toFixed(1), wE=(mapa[m].egr/maxVal*100).toFixed(1);
+    return`<div class="mes-bar"><span class="mes-label">${lbl}</span><div style="flex:1"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><div class="bar-track"><div class="bar-fill bar-ing" style="width:${wI}%"></div></div><span class="bar-val" style="color:var(--green)">${fmt(mapa[m].ing)}</span></div><div style="display:flex;align-items:center;gap:6px"><div class="bar-track"><div class="bar-fill bar-egr" style="width:${wE}%"></div></div><span class="bar-val" style="color:var(--red)">${fmt(mapa[m].egr)}</span></div></div></div>`;
+  }).join('');
+}
+
+// ─── CSV ───
+function exportarCSV(){
+  const rows=[['Número','Tipo','Fecha','Concepto','Referencia','Cuenta #','Cuenta Nombre','Estado Cobro','Partida Cuenta','Descripción','Debe','Haber']];
+  polizas.forEach(p=>{ const c=cuentasMenores.find(x=>x.id===p.clienteId);
+    if(!p.partidas||!p.partidas.length) rows.push([p.numero,p.tipo,p.fecha,p.concepto,p.referencia||'',c?c.num:'',c?c.nombre:'',p.estadoCobro||'','','','','']);
+    else p.partidas.forEach(pt=>rows.push([p.numero,p.tipo,p.fecha,p.concepto,p.referencia||'',c?c.num:'',c?c.nombre:'',p.estadoCobro||'',pt.cuenta||'',pt.descripcion||'',pt.debe||'',pt.haber||'']));
+  });
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}));
+  a.download=`polizas_${hoy()}.csv`; a.click();
+}
+
+// ─── Init ───
+(async()=>{
+  $('view-polizas').innerHTML='<div class="loading"><div class="spinner"></div> Cargando…</div>';
+  await cargar();
+  $('view-polizas').innerHTML=`
+    <div class="summary-grid">
+      <div class="summary-card ingreso"><div class="label">Ingresos</div><div class="amount" id="sum-ingresos">$0</div><div class="sub" id="cnt-ingresos">0 pólizas</div></div>
+      <div class="summary-card egreso"><div class="label">Egresos</div><div class="amount" id="sum-egresos">$0</div><div class="sub" id="cnt-egresos">0 pólizas</div></div>
+      <div class="summary-card saldo"><div class="label">Saldo Neto</div><div class="amount" id="sum-saldo">$0</div><div class="sub">ingresos − egresos</div></div>
+      <div class="summary-card clientes"><div class="label">Por Cobrar</div><div class="amount" id="sum-cobrar">$0</div><div class="sub" id="cnt-cobrar">0 cuentas</div></div>
+    </div>
+    <div class="section-tabs">
+      <button class="section-tab active" onclick="setFiltroTipo('todas')">Todas</button>
+      <button class="section-tab" onclick="setFiltroTipo('INGRESO')">Ingresos</button>
+      <button class="section-tab" onclick="setFiltroTipo('EGRESO')">Egresos</button>
+      <button class="section-tab" onclick="setFiltroTipo('DIARIO')">Diario</button>
+    </div>
+    <div class="action-bar">
+      <button class="btn primary" onclick="abrirModalNueva()">＋ Nueva Póliza</button>
+      <div class="filter-group">
+        <input type="text" id="filtro-buscar" placeholder="Buscar..." oninput="renderTabla()" style="min-width:140px">
+        <input type="month" id="filtro-mes" oninput="renderTabla()">
+        <button class="btn" onclick="limpiarFiltros()">✕</button>
+      </div>
+      <button class="btn" onclick="exportarCSV()">↓ CSV</button>
+    </div>
+    <div class="table-wrap">
+      <table><thead><tr><th>Póliza #</th><th>Tipo</th><th>Fecha</th><th>Concepto</th><th>Cuenta</th><th style="text-align:right">Monto</th><th></th></tr></thead>
+      <tbody id="tabla-body"></tbody></table>
+      <div id="empty-state" class="empty-state" style="display:none"><div class="icon">📋</div><p>No hay pólizas. Crea la primera arriba.</p></div>
+    </div>`;
+  $('filtro-mes').value=hoy().slice(0,7);
+  renderResumen(); renderTabla(); llenarSelectCuentas();
+})();
+</script>
+</body>
+</html>
